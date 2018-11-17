@@ -1,0 +1,21 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.0.xsd
+        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+<changeSet id="1" author="vgorin">
+    <sql>
+        CREATE TABLE user_account (
+            account_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            email      VARCHAR(64) NOT NULL UNIQUE KEY,
+            username   VARCHAR(16) UNIQUE KEY,
+            password   BINARY(64) NOT NULL,
+            legal_name VARCHAR(256),
+            language   VARCHAR(64),
+            country    VARCHAR(64),
+            timezone   VARCHAR(64)
+        );
+    </sql>
+</changeSet>
+</databaseChangeLog>
