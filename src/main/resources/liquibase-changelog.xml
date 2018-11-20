@@ -4,18 +4,81 @@
         xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.0.xsd
         http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
-<changeSet id="1" author="vgorin">
+<changeSet id="user_acc_create_tables-DDL" author="vgorin">
     <sql>
-        CREATE TABLE user_account (
-            account_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            email      VARCHAR(64) NOT NULL UNIQUE KEY,
-            username   VARCHAR(16) UNIQUE KEY,
-            password   BINARY(64) NOT NULL,
-            legal_name VARCHAR(256),
-            language   VARCHAR(64),
-            country    VARCHAR(64),
-            timezone   VARCHAR(64)
+        CREATE TABLE country (
+            code          CHAR(2) NOT NULL PRIMARY KEY,
+            name          VARCHAR(128) NOT NULL
+        );
+        CREATE TABLE language (
+            code          CHAR(3) NOT NULL PRIMARY KEY,
+            name          VARCHAR(128) NOT NULL
+        );
+        CREATE TABLE timezone (
+            tz            VARCHAR(64) NOT NULL PRIMARY KEY,
+            offset        INTEGER NOT NULL,
+            name          VARCHAR(128) NOT NULL
+        );
+        CREATE TABLE user_acc (
+            account_id    INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            email         VARCHAR(64) NOT NULL UNIQUE KEY,
+            username      VARCHAR(16) UNIQUE KEY,
+            password      BINARY(64) NOT NULL,
+            legal_name    VARCHAR(256),
+            language_code CHAR(3),
+            country_code  CHAR(2),
+            timezone_tz   VARCHAR(64),
+            created       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated       TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+
+            FOREIGN KEY FK_user_account_language_code(language_code) REFERENCES language(code),
+            FOREIGN KEY FK_user_account_country_code(country_code) REFERENCES country(code),
+            FOREIGN KEY FK_user_account_timezone_tz(timezone_tz) REFERENCES timezone(tz)
         );
     </sql>
 </changeSet>
+<changeSet id="user_acc_create_views" author="vgorin">
+    <sql>
+        CREATE VIEW user_account (
+            account_id,
+            email,
+            username,
+            password,
+            legal_name,
+            language,
+            country,
+            timezone
+        ) AS
+        SELECT
+            a.account_id,
+            a.email,
+            a.username,
+            a.password,
+            a.legal_name,
+            l.name,
+            c.name,
+            t.name
+        FROM user_acc a
+        LEFT JOIN language l
+            ON a.language_code = l.code
+        LEFT JOIN country c
+            ON a.country_code = c.code
+        LEFT JOIN timezone t
+            ON a.timezone_tz = t.tz;
+    </sql>
+</changeSet>
+<changeSet id="user_acc_fill_data-DML" author="vgorin">
+    <sql>
+        INSERT INTO country(code, name)
+            VALUES('US', 'United States');
+
+        INSERT INTO language(code, name)
+            VALUES('eng', 'English');
+
+        INSERT INTO timezone(tz, offset, name)
+            VALUES('America/Los_Angeles', -28800000, 'Pacific Standard Time');
+    </sql>
+</changeSet>
+
+
 </databaseChangeLog>
