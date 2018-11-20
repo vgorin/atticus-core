@@ -80,5 +80,38 @@
     </sql>
 </changeSet>
 
+<changeSet id="contract_create_tables-DDL" author="vgorin">
+    <sql>
+        CREATE TABLE contract_template(
+            template_id      INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            owner_account_id INT NOT NULL,
+            header           VARCHAR(128) NOT NULL,
+            body             TEXT NOT NULL,
+            parties          TINYINT NOT NULL,
+            created          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated          TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
 
+            FOREIGN KEY FK_contract_template_owner_account_id(owner_account_id) REFERENCES user_acc(account_id)
+        );
+        CREATE TABLE contract(
+            contract_id     INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            template_id     INT NOT NULL,
+            created         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated         TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+
+            FOREIGN KEY FK_contract_template_id(template_id) REFERENCES contract_template(template_id)
+        );
+        -- contract_party table defines parties involved in the contract
+        CREATE TABLE contract_party(
+            contract_id     INT NOT NULL,
+            user_account_id INT NOT NULL,
+            party_index     INT NOT NULL, -- [0, contract_template.parties)
+            created         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated         TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+
+            FOREIGN KEY FK_contract_party_contract_id(contract_id) REFERENCES contract(contract_id),
+            FOREIGN KEY FK_contract_party_user_account_id(user_account_id) REFERENCES user_acc(account_id)
+        );
+    </sql>
+</changeSet>
 </databaseChangeLog>
