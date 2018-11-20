@@ -14,12 +14,12 @@ import java.sql.Statement;
 import java.util.Objects;
 
 @Component
-@Path("/accounts")
-public class AccountsService {
+@Path("/account")
+public class AccountService {
     private final JdbcTemplate jdbc;
 
     @Autowired
-    public AccountsService(JdbcTemplate jdbc) {
+    public AccountService(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
     }
 
@@ -31,15 +31,15 @@ public class AccountsService {
         jdbc.update(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
-                            "INSERT INTO user_account(email, username, password, legal_name, language, country, timezone) VALUES(?, ? ,?, ?, ?, ?, ?)",
+                            "INSERT INTO user_acc(email, username, password, legal_name, language_code, country_code, timezone_tz) VALUES(?, ? ,?, ?, ?, ?, ?)",
                             Statement.RETURN_GENERATED_KEYS
                     );
                     ps.setString(1, account.email);
                     ps.setString(2, account.username);
                     ps.setBytes(3, new byte[0]);
                     ps.setString(4, account.legalName);
-                    ps.setString(5, account.language);
-                    ps.setString(6, account.country);
+                    ps.setString(5, account.languageCode);
+                    ps.setString(6, account.countryCode);
                     ps.setString(7, account.timezone);
                     return ps;
                 },
@@ -55,7 +55,7 @@ public class AccountsService {
         return jdbc.query(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
-                            "SELECT * FROM user_account WHERE account_id = ?"
+                            "SELECT * FROM user_acc WHERE account_id = ?"
                     );
                     ps.setInt(1, accountId);
                     return ps;
@@ -69,9 +69,9 @@ public class AccountsService {
                     userAccount.email = rs.getString("email");
                     userAccount.username = rs.getString("username");
                     userAccount.legalName = rs.getString("legal_name");
-                    userAccount.language = rs.getString("language");
-                    userAccount.country = rs.getString("country");
-                    userAccount.timezone = rs.getString("timezone");
+                    userAccount.languageCode = rs.getString("language_code");
+                    userAccount.countryCode = rs.getString("country_code");
+                    userAccount.timezone = rs.getString("timezone_tz");
                     return userAccount;
                 }
 
@@ -85,7 +85,7 @@ public class AccountsService {
         jdbc.update(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
-                            "UPDATE user_account SET account_id = ?, email = ?, username = ?, password = ?, legal_name = ?, language = ?, country = ?, timezone = ? WHERE account_id = ?",
+                            "UPDATE user_acc SET account_id = ?, email = ?, username = ?, password = ?, legal_name = ?, language_code = ?, country_code = ?, timezone_tz = ? WHERE account_id = ?",
                             Statement.RETURN_GENERATED_KEYS
                     );
                     ps.setInt(1, account.accountId);
@@ -93,8 +93,8 @@ public class AccountsService {
                     ps.setString(3, account.username);
                     ps.setBytes(4, new byte[0]);
                     ps.setString(5, account.legalName);
-                    ps.setString(6, account.language);
-                    ps.setString(7, account.country);
+                    ps.setString(6, account.languageCode);
+                    ps.setString(7, account.countryCode);
                     ps.setString(8, account.timezone);
                     ps.setInt(9, accountId);
                     return ps;
@@ -108,7 +108,7 @@ public class AccountsService {
         jdbc.update(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
-                            "DELETE FROM user_account WHERE account_id = ?"
+                            "DELETE FROM user_acc WHERE account_id = ?"
                     );
                     ps.setInt(1, accountId);
                     return ps;

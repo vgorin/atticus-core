@@ -17,11 +17,11 @@ public class UserAccount {
     @XmlElement(name = "legal_name")
     public String legalName;
 
-    @XmlElement
-    public String language;
+    @XmlElement(name = "langage_code")
+    public String languageCode;
 
-    @XmlElement
-    public String country;
+    @XmlElement(name = "country_code")
+    public String countryCode;
 
     @XmlElement
     public String timezone;
