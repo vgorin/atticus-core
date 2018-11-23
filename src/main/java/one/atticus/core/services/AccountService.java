@@ -128,7 +128,7 @@ public class AccountService {
                     ps.setInt(1, account.accountId);
                     ps.setString(2, account.email);
                     ps.setString(3, account.username);
-                    ps.setBytes(4, new byte[0]);
+                    ps.setBytes(4, PasswordUtil.passwordHash(account.password));
                     ps.setString(5, account.legalName);
                     ps.setString(6, account.languageCode);
                     ps.setString(7, account.countryCode);
