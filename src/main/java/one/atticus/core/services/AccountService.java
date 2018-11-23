@@ -59,7 +59,7 @@ public class AccountService {
         return jdbc.query(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
-                            "SELECT * FROM user_acc WHERE account_id = ?"
+                            "SELECT * FROM user_acc WHERE id = ?"
                     );
                     ps.setInt(1, accountId);
                     return ps;
@@ -105,7 +105,7 @@ public class AccountService {
             return null;
         }
         UserAccount userAccount = new UserAccount();
-        userAccount.accountId = rs.getInt("account_id");
+        userAccount.accountId = rs.getInt("id");
         userAccount.email = rs.getString("email");
         userAccount.username = rs.getString("username");
         userAccount.legalName = rs.getString("legal_name");
@@ -122,7 +122,7 @@ public class AccountService {
         jdbc.update(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
-                            "UPDATE user_acc SET account_id = ?, email = ?, username = ?, password = ?, legal_name = ?, language_code = ?, country_code = ?, timezone_tz = ? WHERE account_id = ?",
+                            "UPDATE user_acc SET id = ?, email = ?, username = ?, password = ?, legal_name = ?, language_code = ?, country_code = ?, timezone_tz = ? WHERE id = ?",
                             Statement.RETURN_GENERATED_KEYS
                     );
                     ps.setInt(1, account.accountId);
@@ -145,7 +145,7 @@ public class AccountService {
         jdbc.update(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
-                            "DELETE FROM user_acc WHERE account_id = ?"
+                            "DELETE FROM user_acc WHERE id = ?"
                     );
                     ps.setInt(1, accountId);
                     return ps;
