@@ -20,7 +20,7 @@
             name          VARCHAR(128) NOT NULL
         );
         CREATE TABLE user_acc (
-            account_id    INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            id            INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
             email         VARCHAR(64) NOT NULL UNIQUE KEY,
             username      VARCHAR(16) UNIQUE KEY,
             password      BINARY(64) NOT NULL,
@@ -28,6 +28,7 @@
             language_code CHAR(3),
             country_code  CHAR(2),
             timezone_tz   VARCHAR(64),
+
             created       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated       TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
 
@@ -40,7 +41,7 @@
 <changeSet id="user_acc_create_views" author="vgorin">
     <sql>
         CREATE VIEW user_account (
-            account_id,
+            id,
             email,
             username,
             password,
@@ -50,7 +51,7 @@
             timezone
         ) AS
         SELECT
-            a.account_id,
+            a.id,
             a.email,
             a.username,
             a.password,
@@ -69,12 +70,15 @@
 </changeSet>
 <changeSet id="user_acc_fill_data-DML" author="vgorin">
     <sql>
+        -- TODO: insert more countries
         INSERT INTO country(code, name)
             VALUES('US', 'United States');
 
+        -- TODO: insert more languages
         INSERT INTO language(code, name)
             VALUES('eng', 'English');
 
+        -- TODO: insert all timezones
         INSERT INTO timezone(tz, offset, name)
             VALUES('America/Los_Angeles', -28800000, 'Pacific Standard Time');
     </sql>
@@ -82,35 +86,55 @@
 
 <changeSet id="contract_create_tables-DDL" author="vgorin">
     <sql>
-        CREATE TABLE contract_template(
-            template_id      INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            owner_account_id INT NOT NULL,
-            header           VARCHAR(128) NOT NULL,
-            body             TEXT NOT NULL,
-            parties          TINYINT NOT NULL,
-            created          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated          TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
-
-            FOREIGN KEY FK_contract_template_owner_account_id(owner_account_id) REFERENCES user_acc(account_id)
-        );
+        -- contracts, templates, drafts
         CREATE TABLE contract(
-            contract_id     INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            template_id     INT NOT NULL,
-            created         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated         TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+            id          INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            account_id  INT NOT NULL, -- contract/template/draft owner
+            header      VARCHAR(128) NOT NULL,
+            body        TEXT NOT NULL,
+            parties     TINYINT NOT NULL,
+            draft       BIT NOT NULL DEFAULT 1, -- 1 indicates contract is editable and cannot be proposed
 
-            FOREIGN KEY FK_contract_template_id(template_id) REFERENCES contract_template(template_id)
+            created     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated     TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+
+            FOREIGN KEY FK_contract_template_account_id(account_id) REFERENCES user_acc(id)
         );
-        -- contract_party table defines parties involved in the contract
-        CREATE TABLE contract_party(
-            contract_id     INT NOT NULL,
-            user_account_id INT NOT NULL,
-            party_index     INT NOT NULL, -- [0, contract_template.parties)
-            created         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated         TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+        -- list of publicly listed contracts
+        CREATE TABLE public_posting(
+            contract_id INT NOT NULL,
+            active      BIT NOT NULL DEFAULT 1, -- 1 indicates contract is posted
 
-            FOREIGN KEY FK_contract_party_contract_id(contract_id) REFERENCES contract(contract_id),
-            FOREIGN KEY FK_contract_party_user_account_id(user_account_id) REFERENCES user_acc(account_id)
+            created     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated     TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+
+            FOREIGN KEY FK_public_posting_contract_id(contract_id) REFERENCES contract(id)
+        );
+        -- contract proposals
+        CREATE TABLE contract_proposal(
+            contract_id INT NOT NULL,
+            account_id  INT NOT NULL,
+            party_index INT NOT NULL, -- [0, contract.parties)
+            valid_until DATETIME NOT NULL,
+
+            created     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated     TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+
+            FOREIGN KEY FK_contract_proposal_contract_id(contract_id) REFERENCES contract(id),
+            FOREIGN KEY FK_contract_proposal_user_account_id(account_id) REFERENCES user_acc(id)
+        );
+        -- parties involved in the contract
+        CREATE TABLE contract_party(
+            contract_id INT NOT NULL,
+            account_id  INT NOT NULL,
+            party_index INT NOT NULL, -- [0, contract.parties)
+            signature   BINARY(132),
+
+            created     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated     TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+
+            FOREIGN KEY FK_contract_party_contract_id(contract_id) REFERENCES contract(id),
+            FOREIGN KEY FK_contract_party_user_account_id(account_id) REFERENCES user_acc(id)
         );
     </sql>
 </changeSet>
