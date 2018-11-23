@@ -14,6 +14,9 @@ public class UserAccount {
     @XmlElement
     public String username;
 
+    @XmlElement
+    public String password;
+
     @XmlElement(name = "legal_name")
     public String legalName;
 

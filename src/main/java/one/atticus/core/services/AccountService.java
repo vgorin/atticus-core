@@ -1,6 +1,7 @@
 package one.atticus.core.services;
 
 import one.atticus.core.resources.UserAccount;
+import one.atticus.core.util.PasswordUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -10,6 +11,8 @@ import org.springframework.stereotype.Component;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Objects;
 
@@ -26,7 +29,7 @@ public class AccountService {
     @POST
     @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public int create(UserAccount account) {
+    public UserAccount create(UserAccount account) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbc.update(
                 c -> {
@@ -36,7 +39,7 @@ public class AccountService {
                     );
                     ps.setString(1, account.email);
                     ps.setString(2, account.username);
-                    ps.setBytes(3, new byte[0]);
+                    ps.setBytes(3, PasswordUtil.passwordHash(account.password));
                     ps.setString(4, account.legalName);
                     ps.setString(5, account.languageCode);
                     ps.setString(6, account.countryCode);
@@ -45,7 +48,8 @@ public class AccountService {
                 },
                 keyHolder
         );
-        return Objects.requireNonNull(keyHolder.getKey()).intValue();
+        account.accountId = Objects.requireNonNull(keyHolder.getKey()).intValue();
+        return account;
     }
 
     @GET
@@ -60,22 +64,55 @@ public class AccountService {
                     ps.setInt(1, accountId);
                     return ps;
                 },
-                rs -> {
-                    if(!rs.next()) {
-                        return null;
-                    }
-                    UserAccount userAccount = new UserAccount();
-                    userAccount.accountId = rs.getInt("account_id");
-                    userAccount.email = rs.getString("email");
-                    userAccount.username = rs.getString("username");
-                    userAccount.legalName = rs.getString("legal_name");
-                    userAccount.languageCode = rs.getString("language_code");
-                    userAccount.countryCode = rs.getString("country_code");
-                    userAccount.timezone = rs.getString("timezone_tz");
-                    return userAccount;
-                }
-
+                this::getUserAccount
         );
+    }
+
+    @GET
+    @Path("/user/{username}")
+    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    public UserAccount byUsername(@PathParam("username") String username) {
+        return jdbc.query(
+                c -> {
+                    PreparedStatement ps = c.prepareStatement(
+                            "SELECT * FROM user_acc WHERE username = ?"
+                    );
+                    ps.setString(1, username);
+                    return ps;
+                },
+                this::getUserAccount
+        );
+    }
+
+    @GET
+    @Path("/email/{email}")
+    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    public UserAccount byEmail(@PathParam("email") String email) {
+        return jdbc.query(
+                c -> {
+                    PreparedStatement ps = c.prepareStatement(
+                            "SELECT * FROM user_acc WHERE email = ?"
+                    );
+                    ps.setString(1, email);
+                    return ps;
+                },
+                this::getUserAccount
+        );
+    }
+
+    private UserAccount getUserAccount(ResultSet rs) throws SQLException {
+        if(!rs.next()) {
+            return null;
+        }
+        UserAccount userAccount = new UserAccount();
+        userAccount.accountId = rs.getInt("account_id");
+        userAccount.email = rs.getString("email");
+        userAccount.username = rs.getString("username");
+        userAccount.legalName = rs.getString("legal_name");
+        userAccount.languageCode = rs.getString("language_code");
+        userAccount.countryCode = rs.getString("country_code");
+        userAccount.timezone = rs.getString("timezone_tz");
+        return userAccount;
     }
 
     @PUT
