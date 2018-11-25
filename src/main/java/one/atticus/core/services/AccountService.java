@@ -2,6 +2,7 @@ package one.atticus.core.services;
 
 import one.atticus.core.resources.UserAccount;
 import one.atticus.core.util.PasswordUtil;
+import org.codehaus.plexus.util.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -52,7 +53,7 @@ public class AccountService {
             return account;
         }
         catch(DuplicateKeyException e) {
-            throw new ClientErrorException(Response.Status.CONFLICT, e);
+            throw new ClientErrorException(ExceptionUtils.getRootCause(e).getMessage(), Response.Status.CONFLICT, e);
         }
     }
 
