@@ -13,6 +13,7 @@ public class JerseyConfig extends ResourceConfig {
         // https://dzone.com/articles/using-jax-rs-with-spring-boot-instead-of-mvc
         // https://dzone.com/articles/7-reasons-i-do-not-use-jax-rs-in-spring-boot-web-a
         register(AccountService.class);
+        register(CrossOriginResourceSharingFilter.class);
         configureSwagger();
         registerEndpoints();
     }
