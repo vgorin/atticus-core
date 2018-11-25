@@ -81,6 +81,10 @@
         -- TODO: insert all timezones
         INSERT INTO timezone(tz, offset, name)
             VALUES('America/Los_Angeles', -28800000, 'Pacific Standard Time');
+
+        -- insert test user
+        INSERT INTO user_acc(email, username, password, legal_name, language_code, country_code, timezone_tz)
+            VALUES('joedoe@example.com', 'joedoe', 0x7326E9C00036473E2EBF90A46E62DBB7E7655D6AD68FDD2B8C6CDAB6A741CD01E00DA0EECD868C2319E359C4EF8866D23C3C9B9EFACE598ADFEB88BCD5D941FD, 'Joe Doe LLC', 'eng', 'US', 'America/Los_Angeles');
     </sql>
 </changeSet>
 
