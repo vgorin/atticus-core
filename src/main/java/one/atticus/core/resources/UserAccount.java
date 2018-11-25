@@ -4,7 +4,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
-public class UserAccount {
+public class UserAccount extends AbstractJson {
     @XmlElement(name = "account_id")
     public int accountId;
 
