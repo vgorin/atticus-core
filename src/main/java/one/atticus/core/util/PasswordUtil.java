@@ -24,7 +24,7 @@ public class PasswordUtil {
             // pack salt and hash together
             byte[] hash = new byte[64];
             System.arraycopy(salt, 0, hash, 0, salt.length);
-            System.arraycopy(pbkdf2, salt.length, hash, 0, pbkdf2.length);
+            System.arraycopy(pbkdf2, 0, hash, salt.length, pbkdf2.length);
             return hash;
         }
         catch(NoSuchAlgorithmException e) {

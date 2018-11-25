@@ -20,7 +20,7 @@ public class UserAccount {
     @XmlElement(name = "legal_name")
     public String legalName;
 
-    @XmlElement(name = "langage_code")
+    @XmlElement(name = "language_code")
     public String languageCode;
 
     @XmlElement(name = "country_code")
