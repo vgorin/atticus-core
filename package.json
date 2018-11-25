@@ -1,0 +1,35 @@
+{
+  "name": "atticus-core",
+  "version": "1.0.0",
+  "description": "Atticus Core - MVP Application",
+  "main": "./mvnw spring-boot:run",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "chai": "^4.2.0",
+    "q": "^1.5.1",
+    "request": "^2.88.0"
+  },
+  "devDependencies": {
+    "mocha": "^5.2.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vgorin/atticus-core.git"
+  },
+  "keywords": [
+    "EOS",
+    "atticus",
+    "ricardian"
+  ],
+  "author": "vgorin",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vgorin/atticus-core/issues"
+  },
+  "homepage": "https://github.com/vgorin/atticus-core#readme"
+}
