@@ -3,6 +3,7 @@ package one.atticus.core.services;
 import one.atticus.core.resources.UserAccount;
 import one.atticus.core.util.PasswordUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
@@ -10,10 +11,8 @@ import org.springframework.stereotype.Component;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import javax.ws.rs.core.Response;
+import java.sql.*;
 import java.util.Objects;
 
 @Component
@@ -30,33 +29,38 @@ public class AccountService {
     @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public UserAccount create(UserAccount account) {
-        KeyHolder keyHolder = new GeneratedKeyHolder();
-        jdbc.update(
-                c -> {
-                    PreparedStatement ps = c.prepareStatement(
-                            "INSERT INTO user_acc(email, username, password, legal_name, language_code, country_code, timezone_tz) VALUES(?, ? ,?, ?, ?, ?, ?)",
-                            Statement.RETURN_GENERATED_KEYS
-                    );
-                    ps.setString(1, account.email);
-                    ps.setString(2, account.username);
-                    ps.setBytes(3, PasswordUtil.passwordHash(account.password));
-                    ps.setString(4, account.legalName);
-                    ps.setString(5, account.languageCode);
-                    ps.setString(6, account.countryCode);
-                    ps.setString(7, account.timezone);
-                    return ps;
-                },
-                keyHolder
-        );
-        account.accountId = Objects.requireNonNull(keyHolder.getKey()).intValue();
-        return account;
+        try {
+            KeyHolder keyHolder = new GeneratedKeyHolder();
+            jdbc.update(
+                    c -> {
+                        PreparedStatement ps = c.prepareStatement(
+                                "INSERT INTO user_acc(email, username, password, legal_name, language_code, country_code, timezone_tz) VALUES(?, ? ,?, ?, ?, ?, ?)",
+                                Statement.RETURN_GENERATED_KEYS
+                        );
+                        ps.setString(1, account.email);
+                        ps.setString(2, account.username);
+                        ps.setBytes(3, PasswordUtil.passwordHash(account.password));
+                        ps.setString(4, account.legalName);
+                        ps.setString(5, account.languageCode);
+                        ps.setString(6, account.countryCode);
+                        ps.setString(7, account.timezone);
+                        return ps;
+                    },
+                    keyHolder
+            );
+            account.accountId = Objects.requireNonNull(keyHolder.getKey()).intValue();
+            return account;
+        }
+        catch(DuplicateKeyException e) {
+            throw new ClientErrorException(Response.Status.CONFLICT, e);
+        }
     }
 
     @GET
     @Path("/{accountId}")
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public UserAccount retrieve(@PathParam("accountId") int accountId) {
-        return jdbc.query(
+        UserAccount account = jdbc.query(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
                             "SELECT * FROM user_acc WHERE id = ?"
@@ -66,13 +70,17 @@ public class AccountService {
                 },
                 this::getUserAccount
         );
+        if(account == null) {
+            throw new NotFoundException();
+        }
+        return account;
     }
 
     @GET
     @Path("/user/{username}")
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public UserAccount byUsername(@PathParam("username") String username) {
-        return jdbc.query(
+        UserAccount account = jdbc.query(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
                             "SELECT * FROM user_acc WHERE username = ?"
@@ -82,13 +90,17 @@ public class AccountService {
                 },
                 this::getUserAccount
         );
+        if(account == null) {
+            throw new NotFoundException();
+        }
+        return account;
     }
 
     @GET
     @Path("/email/{email}")
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public UserAccount byEmail(@PathParam("email") String email) {
-        return jdbc.query(
+        UserAccount account = jdbc.query(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
                             "SELECT * FROM user_acc WHERE email = ?"
@@ -98,6 +110,10 @@ public class AccountService {
                 },
                 this::getUserAccount
         );
+        if(account == null) {
+            throw new NotFoundException();
+        }
+        return account;
     }
 
     private UserAccount getUserAccount(ResultSet rs) throws SQLException {
@@ -119,7 +135,7 @@ public class AccountService {
     @Path("/{accountId}")
     @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public void update(@PathParam("accountId") int accountId, UserAccount account) {
-        jdbc.update(
+        int rowsUpdated = jdbc.update(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
                             "UPDATE user_acc SET id = ?, email = ?, username = ?, password = ?, legal_name = ?, language_code = ?, country_code = ?, timezone_tz = ? WHERE id = ?",
@@ -137,12 +153,15 @@ public class AccountService {
                     return ps;
                 }
         );
+        if(rowsUpdated == 0) {
+            throw new NotFoundException();
+        }
     }
 
     @DELETE
     @Path("/{accountId}")
     public void delete(@PathParam("accountId") int accountId) {
-        jdbc.update(
+        int rowsUpdated = jdbc.update(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
                             "DELETE FROM user_acc WHERE id = ?"
@@ -151,6 +170,9 @@ public class AccountService {
                     return ps;
                 }
         );
+        if(rowsUpdated == 0) {
+            throw new NotFoundException();
+        }
     }
 
 }
