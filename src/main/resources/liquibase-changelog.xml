@@ -90,55 +90,112 @@
 
 <changeSet id="contract_create_tables-DDL" author="vgorin">
     <sql>
-        -- contracts, templates, drafts
-        CREATE TABLE contract(
+        -- contract template contains text with placeholders
+        -- parties are not defined, placeholders' values too
+        CREATE TABLE contract_template(
             id          INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            account_id  INT NOT NULL, -- contract/template/draft owner
-            parties     TINYINT NOT NULL,
-            header      VARCHAR(128) NOT NULL,
+            account_id  INT NOT NULL, -- owner/creator of the template
+            title       VARCHAR(128) NOT NULL,
+            version     VARCHAR(16),
             body        TEXT NOT NULL,
-            draft       BIT NOT NULL DEFAULT 1, -- 1 indicates contract is editable and cannot be proposed
+            -- initially template is editable (editable flag is set to one)
+            -- zero value means template is not editable anymore
+            -- template cannot go back to editable state once the flag becomes zero
+            editable    BIT NOT NULL DEFAULT 1,
+            deleted     BIT NOT NULL DEFAULT 0, -- indicates if template is deleted (1) or not (0)
+            public      BIT NOT NULL DEFAULT 0, -- public posting flag
 
-            created     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated     TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+            rec_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            rec_updated TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
 
             FOREIGN KEY FK_contract_template_account_id(account_id) REFERENCES user_acc(id)
         );
-        -- list of publicly listed contracts
-        CREATE TABLE public_posting(
-            contract_id INT NOT NULL,
-            active      BIT NOT NULL DEFAULT 1, -- 1 indicates contract is posted
+        -- contract / draft is a template with the placeholders defined
+        CREATE TABLE contract(
+            id          INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            account_id  INT NOT NULL, -- draft owner/creator
+            template_id INT NOT NULL,
+            name        VARCHAR(128) NOT NULL, -- draft name not to be confused with template name
+            version     VARCHAR(16), -- draft version not to be confused with template version
+            -- initially contract is a draft and its editable (draft flag is set to one)
+            -- zero value means contract is not a draft but a "ready to propose" contract
+            -- contract cannot go back to draft state once the flag becomes zero
+            -- contract variables cannot be modified for "ready to propose" contracts
+            draft       BIT NOT NULL DEFAULT 1,
+            deleted     BIT NOT NULL DEFAULT 1, -- indicates if a contract is deleted (1) or not (0)
 
-            created     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated     TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+            rec_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            rec_updated TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
 
-            FOREIGN KEY FK_public_posting_contract_id(contract_id) REFERENCES contract(id)
+            FOREIGN KEY FK_contract_account_id(account_id) REFERENCES user_acc(id),
+            FOREIGN KEY FK_contract_template_id(template_id) REFERENCES contract_template(id)
         );
-        -- contract proposals
+        -- one to many mapping between contract and its variables/placeholders values
+        CREATE TABLE contract_variable(
+            contract_id INT NOT NULL,
+            name        VARCHAR(16) NOT NULL, -- variable/placeholder name
+            value       VARCHAR(32) NOT NULL, -- variable/placeholder value
+
+            rec_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            rec_updated TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+
+            FOREIGN KEY FK_contract_variable_contract_id(contract_id) REFERENCES contract(id)
+        );
+        -- a dialog between parties to sign the contract
+        CREATE TABLE deal(
+            id          INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            account_id  INT NOT NULL, -- account which initiated that deal
+            title       VARCHAR(32),
+
+            rec_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            rec_updated TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+
+            FOREIGN KEY FK_deal_account_id(account_id) REFERENCES user_acc(id)
+        );
+        -- proposal to enter into dialog
+        CREATE TABLE deal_proposal(
+            deal_id     INT NOT NULL,
+            account_id  INT NOT NULL,
+            invited_by  INT NOT NULL,
+            valid_until DATETIME NOT NULL,
+            accepted    BIT NOT NULL DEFAULT 0, -- 1 means the account is party of dialog
+
+            rec_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            rec_updated TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+
+            FOREIGN KEY FK_deal_proposal_account_id(account_id) REFERENCES user_acc(id),
+            FOREIGN KEY FK_deal_proposal_invited_by(invited_by) REFERENCES user_acc(id)
+        );
+        -- is one to many mapping between contract and parties
         CREATE TABLE contract_proposal(
+            id          INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
             contract_id INT NOT NULL,
             account_id  INT NOT NULL,
-            party_index INT NOT NULL, -- [0, contract.parties)
+            party_name  VARCHAR(16) NOT NULL,
             valid_until DATETIME NOT NULL,
+            signature   BINARY(132),
+            signed_on   DATETIME,
 
-            created     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated     TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+            rec_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            rec_updated TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
 
             FOREIGN KEY FK_contract_proposal_contract_id(contract_id) REFERENCES contract(id),
             FOREIGN KEY FK_contract_proposal_user_account_id(account_id) REFERENCES user_acc(id)
         );
-        -- parties involved in the contract
-        CREATE TABLE contract_party(
-            contract_id INT NOT NULL,
+        -- messages related to a deal
+        CREATE TABLE deal_dialog(
+            id          INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            deal_id     INT NOT NULL,
             account_id  INT NOT NULL,
-            party_index INT NOT NULL, -- [0, contract.parties)
-            signature   BINARY(132),
+            message     TEXT NOT NULL,
+            proposal_id INT, -- message may contain a proposal
 
-            created     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated     TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+            rec_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            rec_updated TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP, -- probably won't be used if messages are non-editable
 
-            FOREIGN KEY FK_contract_party_contract_id(contract_id) REFERENCES contract(id),
-            FOREIGN KEY FK_contract_party_user_account_id(account_id) REFERENCES user_acc(id)
+            FOREIGN KEY FK_deal_dialog_deal_id(deal_id) REFERENCES deal(id),
+            FOREIGN KEY FK_deal_dialog_account_id(account_id) REFERENCES user_acc(id),
+            FOREIGN KEY FK_deal_dialog_proposal_id(account_id) REFERENCES contract_proposal(id)
         );
     </sql>
 </changeSet>
