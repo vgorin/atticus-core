@@ -3,6 +3,8 @@ package one.atticus.core;
 import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.jaxrs.listing.ApiListingResource;
 import one.atticus.core.services.AccountService;
+import one.atticus.core.services.ContractService;
+import one.atticus.core.services.ContractTemplateService;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.server.wadl.internal.WadlResource;
 import org.springframework.stereotype.Component;
@@ -13,6 +15,8 @@ public class JerseyConfig extends ResourceConfig {
         // https://dzone.com/articles/using-jax-rs-with-spring-boot-instead-of-mvc
         // https://dzone.com/articles/7-reasons-i-do-not-use-jax-rs-in-spring-boot-web-a
         register(AccountService.class);
+        register(ContractService.class);
+        register(ContractTemplateService.class);
         register(CrossOriginResourceSharingFilter.class);
         register(AtticusExceptionMapper.class);
         configureSwagger();
@@ -33,6 +37,5 @@ public class JerseyConfig extends ResourceConfig {
     }
     private void registerEndpoints() {
         register(WadlResource.class);
-        register(AccountService.class);
     }
 }

@@ -11,9 +11,6 @@ public class Contract {
     @XmlElement(name = "account_id")
     public int accountId;
 
-    @XmlElement(name = "template_id")
-    public Integer templateId;
-
     @XmlElement
     public String memo;
 

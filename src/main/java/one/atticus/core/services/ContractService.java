@@ -16,6 +16,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
 
 @Component
@@ -38,7 +40,7 @@ public class ContractService {
             jdbc.update(
                     c -> {
                         PreparedStatement ps = c.prepareStatement(
-                                "INSERT INTO contract(account_id, memo, body) VALUES(?, ? ,?, ?)",
+                                "INSERT INTO contract(account_id, memo, body) VALUES(?, ?, ?)",
                                 Statement.RETURN_GENERATED_KEYS
                         );
                         ps.setInt(1, contract.accountId);
@@ -83,21 +85,45 @@ public class ContractService {
         int rowsUpdated = jdbc.update(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
-                            "UPDATE contract SET id = ?, account_id = ?, template_id = ?, memo = ?, body = ?, body = ? WHERE id = ?",
+                            "UPDATE contract SET id = ?, account_id = ?, memo = ?, body = ? WHERE id = ?",
                             Statement.RETURN_GENERATED_KEYS
                     );
-                    ps.setInt(1, contract.templateId);
+                    ps.setInt(1, contract.contractId);
                     ps.setInt(2, contract.accountId);
-                    ps.setInt(3, contract.templateId);
-                    ps.setString(4, contract.memo);
-                    ps.setString(5, contract.body);
-                    ps.setInt(6, contractId);
+                    ps.setString(3, contract.memo);
+                    ps.setString(4, contract.body);
+                    ps.setInt(5, contractId);
                     return ps;
                 }
         );
         if(rowsUpdated == 0) {
             throw new NotFoundException();
         }
+    }
+
+    @GET
+    @Path("/list/{accountId}")
+    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    public List<Contract> listContracts(@PathParam("accountId") int accountId) {
+        return jdbc.query(
+                c -> {
+                    PreparedStatement ps = c.prepareStatement(
+                            "SELECT * FROM contract WHERE account_id = ?"
+                    );
+                    ps.setInt(1, accountId);
+                    return ps;
+                },
+                this::getContracts
+        );
+    }
+
+    private List<Contract> getContracts(ResultSet rs) throws SQLException {
+        List<Contract> contracts = new LinkedList<>();
+        Contract contract = null;
+        while((contract = getContract(rs)) != null) {
+            contracts.add(contract);
+        }
+        return contracts;
     }
 
     private Contract getContract(ResultSet rs) throws SQLException {
@@ -107,7 +133,6 @@ public class ContractService {
         Contract template = new Contract();
         template.contractId = rs.getInt("id");
         template.accountId = rs.getInt("account_id");
-        template.templateId = rs.getInt("template_id");
         template.memo = rs.getString("memo");
         template.body = rs.getString("body");
         return template;
