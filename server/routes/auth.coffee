@@ -15,11 +15,11 @@ router.use '/login', (req, res, next)->
   .then (rs_json)->
     # todo - get slat
     return res.send 'todo'
-    json = rs_json[0][0]
-    Q.npost crypto, 'pbkdf2', [
-      password, salt, 100000, 32, 'sha256'
-    ]
-    res.json json
+#    json = rs_json[0][0]
+#    Q.npost crypto, 'pbkdf2', [
+#      password, salt, 100000, 32, 'sha256'
+#    ]
+#    res.json json
   .catch next
 
 router.post '/logout', (req, res, next)->
