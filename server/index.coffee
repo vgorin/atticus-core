@@ -29,6 +29,7 @@ app.use (req,res,next)->
 app.get '/test', (req, res, next)->
   res.end 'test ok'
 
+app.use '/auth',    require './routes/auth.coffee'
 app.use '/account', require './routes/account.coffee'
 
 # catch 404 and forward to error handler

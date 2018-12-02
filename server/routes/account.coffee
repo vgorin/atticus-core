@@ -6,16 +6,17 @@ router  = express.Router()
 crypto  = require 'crypto'
 
 router.post '/', (req, res, next)->
-  { email, username, password, legalName, languageCode, countryCode, timezone } = req.body
+  { email, username, password, legalName, languageCode, countryCode, timezone } = req.body or {}
+  salt = crypto.randomBytes 32
   Q.npost crypto, 'pbkdf2', [
-    'secret', 'salt', 100000, 256, 'sha256'
+    password, salt, 100000, 32, 'sha256'
   ]
   .then (bytes)->
-    password = bytes
-  Q.npost global.mysql_conn, 'query', [
-    "INSERT INTO user_acc(email, username, password, legal_name, language_code, country_code, timezone_tz) VALUES(?, ? ,?, ?, ?, ?, ?)",
-    [ email, username, password, legalName, languageCode, countryCode, timezone ]
-  ]
+    password_hash = Buffer.concat [ salt, bytes ]
+    Q.npost global.mysql_conn, 'query', [
+      "INSERT INTO user_acc(email, username, password, legal_name, language_code, country_code, timezone_tz) VALUES(?, ? ,?, ?, ?, ?, ?)",
+      [ email, username, password_hash, legalName, languageCode, countryCode, timezone ]
+    ]
   .then (rs_json)->
     res.json Object.assign req.body, {
       account_id: rs_json[0]?.insertId
@@ -33,7 +34,5 @@ router.get '/:account_id', (req, res, next)->
     delete json.password
     res.json json
   .catch next
-
-
 
 module.exports = router
