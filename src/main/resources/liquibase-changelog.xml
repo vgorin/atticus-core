@@ -118,7 +118,6 @@
             account_id  INT NOT NULL, -- draft owner/creator
             template_id INT, -- null value means contract is not based on the template
             memo        VARCHAR(128) NOT NULL, -- draft name not to be confused with template title
-            version     VARCHAR(16), -- draft version not to be confused with template version
             body        TEXT, -- may contain placeholders as well
             -- initially contract is a draft and its editable (proposed on date is null)
             -- non-null value means contract is not a draft but a proposed contract
@@ -126,11 +125,10 @@
             -- contract variables cannot be modified for already proposed contracts
             proposed    DATETIME, -- null value means contract is a draft
             deleted     DATETIME, -- null value means contract is active
+            modified    DATETIME NOT NULL,
 
             rec_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             rec_updated TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
-
-            CONSTRAINT  UQ_contract_COV UNIQUE(account_id, template_id, memo, version),
 
             FOREIGN KEY FK_contract_account_id(account_id) REFERENCES user_acc(id),
             FOREIGN KEY FK_contract_template_id(template_id) REFERENCES contract_template(id)
