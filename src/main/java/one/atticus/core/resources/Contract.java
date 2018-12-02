@@ -4,22 +4,19 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
-public class Contract extends AbstractJson {
-    @XmlElement
+public class Contract {
+    @XmlElement(name = "contract_id")
     public int contractId;
 
-    @XmlElement
+    @XmlElement(name = "account_id")
     public int accountId;
 
-    @XmlElement
-    public int parties;
+    @XmlElement(name = "template_id")
+    public Integer templateId;
 
     @XmlElement
-    public String header;
+    public String memo;
 
     @XmlElement
     public String body;
-
-    @XmlElement
-    public boolean draft;
 }

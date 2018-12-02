@@ -16,8 +16,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Objects;
 
 @Component
@@ -30,6 +28,7 @@ public class ContractService {
         this.jdbc = jdbc;
     }
 
+    @Path("/")
     @POST
     @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
@@ -39,14 +38,12 @@ public class ContractService {
             jdbc.update(
                     c -> {
                         PreparedStatement ps = c.prepareStatement(
-                                "INSERT INTO contract(account_id, parties, header, body, draft) VALUES(?, ? ,?, ?, ?)",
+                                "INSERT INTO contract(account_id, memo, body) VALUES(?, ? ,?, ?)",
                                 Statement.RETURN_GENERATED_KEYS
                         );
                         ps.setInt(1, contract.accountId);
-                        ps.setInt(2, contract.parties);
-                        ps.setString(3, contract.header);
-                        ps.setString(4, contract.body);
-                        ps.setBoolean(5, contract.draft);
+                        ps.setString(2, contract.memo);
+                        ps.setString(3, contract.body);
                         return ps;
                     },
                     keyHolder
@@ -79,43 +76,41 @@ public class ContractService {
         return contract;
     }
 
-    @GET
-    @Path("/by/{accountId}")
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public Contract[] byUsername(@PathParam("accountId") int accountId) {
-        return jdbc.query(
+    @PUT
+    @Path("/{contractId}")
+    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    public void update(@PathParam("contractId") int contractId, Contract contract) {
+        int rowsUpdated = jdbc.update(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
-                            "SELECT * FROM contract WHERE account_id = ?"
+                            "UPDATE contract SET id = ?, account_id = ?, template_id = ?, memo = ?, body = ?, body = ? WHERE id = ?",
+                            Statement.RETURN_GENERATED_KEYS
                     );
-                    ps.setInt(1, accountId);
+                    ps.setInt(1, contract.templateId);
+                    ps.setInt(2, contract.accountId);
+                    ps.setInt(3, contract.templateId);
+                    ps.setString(4, contract.memo);
+                    ps.setString(5, contract.body);
+                    ps.setInt(6, contractId);
                     return ps;
-                },
-                this::getContracts
+                }
         );
+        if(rowsUpdated == 0) {
+            throw new NotFoundException();
+        }
     }
 
     private Contract getContract(ResultSet rs) throws SQLException {
         if(!rs.next()) {
             return null;
         }
-        Contract contract = new Contract();
-        contract.contractId = rs.getInt("id");
-        contract.accountId = rs.getInt("account_id");
-        contract.parties = rs.getInt("parties");
-        contract.header = rs.getString("header");
-        contract.body = rs.getString("body");
-        contract.draft = rs.getBoolean("draft");
-        return contract;
-    }
-
-    private Contract[] getContracts(ResultSet rs) throws SQLException {
-        List<Contract> contracts = new LinkedList<>();
-        Contract c;
-        while((c = getContract(rs)) != null) {
-            contracts.add(c);
-        }
-        return contracts.toArray(new Contract[0]);
+        Contract template = new Contract();
+        template.contractId = rs.getInt("id");
+        template.accountId = rs.getInt("account_id");
+        template.templateId = rs.getInt("template_id");
+        template.memo = rs.getString("memo");
+        template.body = rs.getString("body");
+        return template;
     }
 
 }

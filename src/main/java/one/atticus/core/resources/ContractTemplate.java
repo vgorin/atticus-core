@@ -2,7 +2,6 @@ package one.atticus.core.resources;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import java.util.Date;
 
 @XmlRootElement
 public class ContractTemplate {
