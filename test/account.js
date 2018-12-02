@@ -30,4 +30,21 @@ describe('account', function(){
             done(err);
         });
     });
+
+    it('get by account id', function(done) { // !!! do not change "function" to an arrow
+        let account_id = 10;
+        let req = {
+            url  : 'http://localhost:28081/account/'+account_id,
+            json : true
+        };
+
+        Q.npost(request, 'get', [req])
+        .then((r) => {
+            let [res, json] = r;
+            expect(json.account_id).to.equal(req.json.account_id);
+            done();
+        }).catch( (err)=>{
+            done(err);
+        });
+    });
 });

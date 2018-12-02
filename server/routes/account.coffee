@@ -3,9 +3,15 @@ require './../config/local'
 Q       = require 'q'
 express = require 'express'
 router  = express.Router()
+crypto  = require 'crypto'
 
 router.post '/', (req, res, next)->
   { email, username, password, legalName, languageCode, countryCode, timezone } = req.body
+  Q.npost crypto, 'pbkdf2', [
+    'secret', 'salt', 100000, 256, 'sha256'
+  ]
+  .then (bytes)->
+    password = bytes
   Q.npost global.mysql_conn, 'query', [
     "INSERT INTO user_acc(email, username, password, legal_name, language_code, country_code, timezone_tz) VALUES(?, ? ,?, ?, ?, ?, ?)",
     [ email, username, password, legalName, languageCode, countryCode, timezone ]
@@ -15,5 +21,19 @@ router.post '/', (req, res, next)->
       account_id: rs_json[0]?.insertId
     }
   .catch next
+
+router.get '/:account_id', (req, res, next)->
+  { account_id } = req.params or {}
+  Q.npost global.mysql_conn, 'query', [
+    "SELECT * FROM user_acc WHERE id = ?",
+    [ account_id ]
+  ]
+  .then (rs_json)->
+    json = rs_json[0][0]
+    delete json.password
+    res.json json
+  .catch next
+
+
 
 module.exports = router
