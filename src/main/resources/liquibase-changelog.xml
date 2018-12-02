@@ -84,9 +84,11 @@
         INSERT INTO timezone(tz, offset, name)
             VALUES('America/Los_Angeles', -28800000, 'Pacific Standard Time');
 
-        -- insert test user
+        -- insert test users
         INSERT INTO user_acc(email, username, password, legal_name, language_code, country_code, timezone_tz)
             VALUES('joedoe@example.com', 'joedoe', 0x7326E9C00036473E2EBF90A46E62DBB7E7655D6AD68FDD2B8C6CDAB6A741CD01E00DA0EECD868C2319E359C4EF8866D23C3C9B9EFACE598ADFEB88BCD5D941FD, 'Joe Doe LLC', 'eng', 'US', 'America/Los_Angeles');
+        INSERT INTO user_acc(email, username, password, legal_name, language_code, country_code, timezone_tz)
+            VALUES('1', '1', 0x293F24556AD4665AABF2457D5F6EB3A90DF0EAA85058F0D20CC43626F0A3934C225D9E1CD1950D5ECC5949470D625721B322BE3F616DBD91C9FA961EE3CCC90E, '1', 'eng', 'US', 'America/Los_Angeles');
     </sql>
 </changeSet>
 
@@ -127,7 +129,7 @@
             -- contract variables cannot be modified for already proposed contracts
             proposed    DATETIME, -- null value means contract is a draft
             deleted     DATETIME, -- null value means contract is active
-            modified    DATETIME NOT NULL,
+            modified    DATETIME NOT NULL DEFAULT NOW(),
 
             rec_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             rec_updated TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
