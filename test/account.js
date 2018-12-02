@@ -7,11 +7,12 @@ describe('account', function(){
         this.timeout(25000);
 
         let req = {
-            url  : 'http://192.168.1.236:8080/account',
+            //url  : 'http://192.168.1.236:8080/account',
+            url  : 'http://localhost:28081/account',
             json : {
-                account_id : 1,
-                email : 'despotix3@gmail.com',
-                username : 'Despotix3',
+                account_id : 2,
+                email : 'despotix7@gmail.com',
+                username : 'Despotix7',
                 password : 'test1',
                 legal_name : 'Legal',
                 language_code : 'eng',
