@@ -47,4 +47,24 @@ describe('account', function(){
             done(err);
         });
     });
+
+    it.only('/login', function(done) { // !!! do not change "function" to an arrow
+        let account_id = 10;
+        let req = {
+            url  : 'http://localhost:28081/auth/login/',
+            json : {
+                email : 'despotix12@gmail.com',
+                password : 1
+            }
+        };
+
+        Q.npost(request, 'post', [req])
+            .then((r) => {
+                let [res, json] = r;
+                expect(json.account_id).to.equal(req.json.account_id);
+                done();
+            }).catch( (err)=>{
+            done(err);
+        });
+    });
 });
