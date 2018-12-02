@@ -1,6 +1,6 @@
 package one.atticus.core.services;
 
-import one.atticus.core.resources.Contract;
+import one.atticus.core.resources.ContractTemplate;
 import org.codehaus.plexus.util.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
@@ -19,12 +19,12 @@ import java.sql.Statement;
 import java.util.Objects;
 
 @Component
-@Path("/contract")
-public class ContractService {
+@Path("/template")
+public class ContractTemplateService {
     private final JdbcTemplate jdbc;
 
     @Autowired
-    public ContractService(JdbcTemplate jdbc) {
+    public ContractTemplateService(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
     }
 
@@ -32,66 +32,68 @@ public class ContractService {
     @POST
     @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public Contract create(Contract contract) {
+    public ContractTemplate create(ContractTemplate template) {
         try {
             KeyHolder keyHolder = new GeneratedKeyHolder();
             jdbc.update(
                     c -> {
                         PreparedStatement ps = c.prepareStatement(
-                                "INSERT INTO contract(account_id, memo, body) VALUES(?, ? ,?, ?)",
+                                "INSERT INTO contract_template(account_id, title, version, body) VALUES(?, ? ,?, ?)",
                                 Statement.RETURN_GENERATED_KEYS
                         );
-                        ps.setInt(1, contract.accountId);
-                        ps.setString(2, contract.memo);
-                        ps.setString(3, contract.body);
+                        ps.setInt(1, template.accountId);
+                        ps.setString(2, template.title);
+                        ps.setString(3, template.version);
+                        ps.setString(4, template.body);
                         return ps;
                     },
                     keyHolder
             );
-            contract.contractId = Objects.requireNonNull(keyHolder.getKey()).intValue();
-            return contract;
+            template.templateId = Objects.requireNonNull(keyHolder.getKey()).intValue();
+            return template;
         }
         catch(DuplicateKeyException e) {
             throw new ClientErrorException(ExceptionUtils.getRootCause(e).getMessage(), Response.Status.CONFLICT, e);
         }
     }
 
+
     @GET
-    @Path("/{contractId}")
+    @Path("/{templateId}")
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public Contract retrieve(@PathParam("contractId") int contractId) {
-        Contract contract = jdbc.query(
+    public ContractTemplate retrieve(@PathParam("templateId") int templateId) {
+        ContractTemplate template = jdbc.query(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
-                            "SELECT * FROM contract WHERE id = ?"
+                            "SELECT * FROM contract_template WHERE id = ?"
                     );
-                    ps.setInt(1, contractId);
+                    ps.setInt(1, templateId);
                     return ps;
                 },
-                this::getContract
+                this::getContractTemplate
         );
-        if(contract == null) {
+        if(template == null) {
             throw new NotFoundException();
         }
-        return contract;
+        return template;
     }
 
     @PUT
-    @Path("/{contractId}")
+    @Path("/{templateId}")
     @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public void update(@PathParam("contractId") int contractId, Contract contract) {
+    public void update(@PathParam("templateId") int templateId, ContractTemplate template) {
         int rowsUpdated = jdbc.update(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
-                            "UPDATE contract SET id = ?, account_id = ?, template_id = ?, memo = ?, body = ?, body = ? WHERE id = ?",
+                            "UPDATE account_template SET id = ?, account_id = ?, title = ?, version = ?, body = ? WHERE id = ?",
                             Statement.RETURN_GENERATED_KEYS
                     );
-                    ps.setInt(1, contract.templateId);
-                    ps.setInt(2, contract.accountId);
-                    ps.setInt(3, contract.templateId);
-                    ps.setString(4, contract.memo);
-                    ps.setString(5, contract.body);
-                    ps.setInt(6, contractId);
+                    ps.setInt(1, template.templateId);
+                    ps.setInt(2, template.accountId);
+                    ps.setString(2, template.title);
+                    ps.setString(3, template.version);
+                    ps.setString(4, template.body);
+                    ps.setInt(5, templateId);
                     return ps;
                 }
         );
@@ -100,15 +102,15 @@ public class ContractService {
         }
     }
 
-    private Contract getContract(ResultSet rs) throws SQLException {
+    private ContractTemplate getContractTemplate(ResultSet rs) throws SQLException {
         if(!rs.next()) {
             return null;
         }
-        Contract template = new Contract();
-        template.contractId = rs.getInt("id");
+        ContractTemplate template = new ContractTemplate();
+        template.templateId = rs.getInt("id");
         template.accountId = rs.getInt("account_id");
-        template.templateId = rs.getInt("template_id");
-        template.memo = rs.getString("memo");
+        template.title = rs.getString("title");
+        template.version = rs.getString("version");
         template.body = rs.getString("body");
         return template;
     }

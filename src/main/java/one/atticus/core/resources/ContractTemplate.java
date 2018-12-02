@@ -4,19 +4,20 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
-public class Contract {
-    @XmlElement(name = "contract_id")
-    public int contractId;
+public class ContractTemplate {
+    @XmlElement(name = "template_id")
+    public int templateId;
 
     @XmlElement(name = "account_id")
     public int accountId;
 
-    @XmlElement(name = "template_id")
-    public Integer templateId;
+    @XmlElement
+    public String title;
 
     @XmlElement
-    public String memo;
+    public String version;
 
     @XmlElement
     public String body;
+
 }
