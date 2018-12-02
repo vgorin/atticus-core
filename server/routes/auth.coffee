@@ -6,14 +6,15 @@ router  = express.Router()
 crypto  = require 'crypto'
 
 router.use '/login', (req, res, next)->
-  { email, password } = req.query or req.body or {}
-  log req.query, req.body, { email, password }
+  { email, password } = Object.assign {}, req.query or {}, req.body or {}
+  #log { email, password }
   Q.npost global.mysql_conn, 'query', [
     "SELECT * FROM user_acc WHERE email = ?",
     [ email ]
   ]
   .then (rs_json)->
     # todo - get slat
+    log JSON.stringify rs_json[0], null, '  '
     return res.send 'todo'
 #    json = rs_json[0][0]
 #    Q.npost crypto, 'pbkdf2', [
