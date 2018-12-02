@@ -29,6 +29,8 @@
             country_code  CHAR(2),
             timezone_tz   VARCHAR(64),
 
+            active        BIT NOT NULL DEFAULT 1, -- set to zero to delete an account
+
             created       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated       TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
 

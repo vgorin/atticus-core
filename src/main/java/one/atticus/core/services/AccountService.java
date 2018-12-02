@@ -13,7 +13,10 @@ import org.springframework.stereotype.Component;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.sql.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Objects;
 
 @Component
@@ -77,6 +80,33 @@ public class AccountService {
         return account;
     }
 
+    @PUT
+    @Path("/{accountId}")
+    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    public void update(@PathParam("accountId") int accountId, UserAccount account) {
+        int rowsUpdated = jdbc.update(
+                c -> {
+                    PreparedStatement ps = c.prepareStatement(
+                            "UPDATE user_acc SET id = ?, email = ?, username = ?, password = ?, legal_name = ?, language_code = ?, country_code = ?, timezone_tz = ? WHERE id = ?",
+                            Statement.RETURN_GENERATED_KEYS
+                    );
+                    ps.setInt(1, account.accountId);
+                    ps.setString(2, account.email);
+                    ps.setString(3, account.username);
+                    ps.setBytes(4, PasswordUtil.passwordHash(account.password));
+                    ps.setString(5, account.legalName);
+                    ps.setString(6, account.languageCode);
+                    ps.setString(7, account.countryCode);
+                    ps.setString(8, account.timezone);
+                    ps.setInt(9, accountId);
+                    return ps;
+                }
+        );
+        if(rowsUpdated == 0) {
+            throw new NotFoundException();
+        }
+    }
+
     @GET
     @Path("/user/{username}")
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
@@ -130,50 +160,6 @@ public class AccountService {
         userAccount.countryCode = rs.getString("country_code");
         userAccount.timezone = rs.getString("timezone_tz");
         return userAccount;
-    }
-
-    @PUT
-    @Path("/{accountId}")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public void update(@PathParam("accountId") int accountId, UserAccount account) {
-        int rowsUpdated = jdbc.update(
-                c -> {
-                    PreparedStatement ps = c.prepareStatement(
-                            "UPDATE user_acc SET id = ?, email = ?, username = ?, password = ?, legal_name = ?, language_code = ?, country_code = ?, timezone_tz = ? WHERE id = ?",
-                            Statement.RETURN_GENERATED_KEYS
-                    );
-                    ps.setInt(1, account.accountId);
-                    ps.setString(2, account.email);
-                    ps.setString(3, account.username);
-                    ps.setBytes(4, PasswordUtil.passwordHash(account.password));
-                    ps.setString(5, account.legalName);
-                    ps.setString(6, account.languageCode);
-                    ps.setString(7, account.countryCode);
-                    ps.setString(8, account.timezone);
-                    ps.setInt(9, accountId);
-                    return ps;
-                }
-        );
-        if(rowsUpdated == 0) {
-            throw new NotFoundException();
-        }
-    }
-
-    @DELETE
-    @Path("/{accountId}")
-    public void delete(@PathParam("accountId") int accountId) {
-        int rowsUpdated = jdbc.update(
-                c -> {
-                    PreparedStatement ps = c.prepareStatement(
-                            "DELETE FROM user_acc WHERE id = ?"
-                    );
-                    ps.setInt(1, accountId);
-                    return ps;
-                }
-        );
-        if(rowsUpdated == 0) {
-            throw new NotFoundException();
-        }
     }
 
 }
