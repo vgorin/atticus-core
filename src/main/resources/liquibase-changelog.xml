@@ -108,6 +108,8 @@
             rec_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             rec_updated TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
 
+            CONSTRAINT  UQ_contract_template_COV UNIQUE(account_id, title, version),
+
             FOREIGN KEY FK_contract_template_account_id(account_id) REFERENCES user_acc(id)
         );
         -- contract / draft is a template with the placeholders defined
@@ -128,6 +130,8 @@
             rec_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             rec_updated TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
 
+            CONSTRAINT  UQ_contract_COV UNIQUE(account_id, template_id, memo, version),
+
             FOREIGN KEY FK_contract_account_id(account_id) REFERENCES user_acc(id),
             FOREIGN KEY FK_contract_template_id(template_id) REFERENCES contract_template(id)
         );
@@ -135,10 +139,12 @@
         CREATE TABLE contract_variable(
             contract_id INT NOT NULL,
             name        VARCHAR(16) NOT NULL, -- variable/placeholder name
-            value       VARCHAR(32) NOT NULL, -- variable/placeholder value
+            value       VARCHAR(64) NOT NULL, -- variable/placeholder value
 
             rec_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             rec_updated TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+
+            CONSTRAINT  UQ_contract_variable_COV UNIQUE(contract_id, name),
 
             FOREIGN KEY FK_contract_variable_contract_id(contract_id) REFERENCES contract(id)
         );
@@ -150,6 +156,8 @@
 
             rec_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             rec_updated TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+
+            CONSTRAINT  UQ_deal_COV UNIQUE(account_id, title),
 
             FOREIGN KEY FK_deal_account_id(account_id) REFERENCES user_acc(id)
         );
@@ -169,6 +177,8 @@
             rec_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             rec_updated TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP, -- probably won't be used (messages are non-editable)
 
+            CONSTRAINT  UQ_deal_dialog_COV UNIQUE(deal_id, seq_num),
+
             FOREIGN KEY FK_deal_dialog_deal_id(deal_id) REFERENCES deal(id),
             FOREIGN KEY FK_deal_dialog_account_id(account_id) REFERENCES user_acc(id),
             FOREIGN KEY FK_deal_dialog_contract_id(account_id) REFERENCES contract(id)
@@ -185,6 +195,8 @@
 
             rec_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             rec_updated TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+
+            CONSTRAINT  UQ_contract_party_COV UNIQUE(contract_id, account_id),
 
             FOREIGN KEY FK_contract_party_contract_id(contract_id) REFERENCES contract(id),
             FOREIGN KEY FK_contract_party_user_account_id(account_id) REFERENCES user_acc(id)
