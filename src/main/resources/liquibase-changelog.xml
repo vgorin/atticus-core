@@ -205,4 +205,12 @@
         );
     </sql>
 </changeSet>
+§
+<!--
+<changeSet id="contract_create_procedures-TCL" author="vgorin">
+    <sql>
+
+    </sql>
+</changeSet>
+-->
 </databaseChangeLog>

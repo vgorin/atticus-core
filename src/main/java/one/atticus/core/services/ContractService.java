@@ -119,7 +119,7 @@ public class ContractService {
 
     private List<Contract> getContracts(ResultSet rs) throws SQLException {
         List<Contract> contracts = new LinkedList<>();
-        Contract contract = null;
+        Contract contract;
         while((contract = getContract(rs)) != null) {
             contracts.add(contract);
         }

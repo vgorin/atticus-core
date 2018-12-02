@@ -4,7 +4,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
-public class Contract {
+public class Contract extends AbstractJson {
     @XmlElement(name = "contract_id")
     public int contractId;
 

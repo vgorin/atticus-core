@@ -5,6 +5,7 @@ import io.swagger.jaxrs.listing.ApiListingResource;
 import one.atticus.core.services.AccountService;
 import one.atticus.core.services.ContractService;
 import one.atticus.core.services.ContractTemplateService;
+import one.atticus.core.services.DealService;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.server.wadl.internal.WadlResource;
 import org.springframework.stereotype.Component;
@@ -17,6 +18,7 @@ public class JerseyConfig extends ResourceConfig {
         register(AccountService.class);
         register(ContractService.class);
         register(ContractTemplateService.class);
+        register(DealService.class);
         register(CrossOriginResourceSharingFilter.class);
         register(AtticusExceptionMapper.class);
         configureSwagger();
