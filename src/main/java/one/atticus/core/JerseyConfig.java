@@ -2,6 +2,7 @@ package one.atticus.core;
 
 import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.jaxrs.listing.ApiListingResource;
+import one.atticus.core.security.JerseyAuthFilter;
 import one.atticus.core.services.AccountService;
 import one.atticus.core.services.ContractService;
 import one.atticus.core.services.ContractTemplateService;
@@ -21,6 +22,7 @@ public class JerseyConfig extends ResourceConfig {
         register(DealService.class);
         register(CrossOriginResourceSharingFilter.class);
         register(AtticusExceptionMapper.class);
+        register(JerseyAuthFilter.class);
         configureSwagger();
         registerEndpoints();
     }

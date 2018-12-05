@@ -8,6 +8,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -20,7 +21,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
-@Component
+@Service
 @Path("/contract")
 public class ContractService {
     private final JdbcTemplate jdbc;

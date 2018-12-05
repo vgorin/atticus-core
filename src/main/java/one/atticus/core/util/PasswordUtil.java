@@ -40,6 +40,11 @@ public class PasswordUtil {
             return false;
         }
 
+        // password cannot be null
+        if(password == null) {
+            return false;
+        }
+
         // extract 32 bytes of salt
         byte[] salt = new byte[32];
         System.arraycopy(hash, 0, salt, 0, salt.length);

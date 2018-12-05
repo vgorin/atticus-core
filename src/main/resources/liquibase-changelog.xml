@@ -6,6 +6,10 @@
         http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
 <changeSet id="user_acc_create_tables-DDL" author="vgorin">
     <sql>
+        CREATE TABLE user_role(
+            id            TINYINT UNSIGNED NOT NULL PRIMARY KEY,
+            name          VARCHAR(16) NOT NULL
+        );
         CREATE TABLE country (
             code          CHAR(2) NOT NULL PRIMARY KEY,
             name          VARCHAR(128) NOT NULL
@@ -20,7 +24,7 @@
             name          VARCHAR(128) NOT NULL
         );
         CREATE TABLE user_acc (
-            id            INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            id            INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
             email         VARCHAR(64) NOT NULL UNIQUE KEY,
             username      VARCHAR(16) UNIQUE KEY,
             password      BINARY(64) NOT NULL,
@@ -28,6 +32,7 @@
             language_code CHAR(3),
             country_code  CHAR(2),
             timezone_tz   VARCHAR(64),
+            role_id       TINYINT UNSIGNED NOT NULL DEFAULT 1,
 
             active        BIT NOT NULL DEFAULT 1, -- set to zero to delete an account
 
@@ -36,7 +41,8 @@
 
             FOREIGN KEY FK_user_account_language_code(language_code) REFERENCES language(code),
             FOREIGN KEY FK_user_account_country_code(country_code) REFERENCES country(code),
-            FOREIGN KEY FK_user_account_timezone_tz(timezone_tz) REFERENCES timezone(tz)
+            FOREIGN KEY FK_user_account_timezone_tz(timezone_tz) REFERENCES timezone(tz),
+            FOREIGN KEY FK_user_account_role_id(role_id) REFERENCES user_role(id)
         );
     </sql>
 </changeSet>
@@ -50,7 +56,8 @@
             legal_name,
             language,
             country,
-            timezone
+            timezone,
+            role
         ) AS
         SELECT
             a.id,
@@ -60,18 +67,25 @@
             a.legal_name,
             l.name,
             c.name,
-            t.name
+            t.name,
+            r.name
         FROM user_acc a
         LEFT JOIN language l
             ON a.language_code = l.code
         LEFT JOIN country c
             ON a.country_code = c.code
         LEFT JOIN timezone t
-            ON a.timezone_tz = t.tz;
+            ON a.timezone_tz = t.tz
+        LEFT JOIN user_role r
+            ON a.role_id = r.id;
     </sql>
 </changeSet>
 <changeSet id="user_acc_fill_data-DML" author="vgorin">
     <sql>
+        -- define some user roles
+        INSERT INTO user_role(id, name) VALUES(1, 'user');
+        INSERT INTO user_role(id, name) VALUES(255, 'admin');
+
         -- TODO: insert more countries
         INSERT INTO country(code, name)
             VALUES('US', 'United States');
@@ -97,11 +111,11 @@
         -- contract template contains text with placeholders
         -- parties are not defined, placeholders' values too
         CREATE TABLE contract_template(
-            id          INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            account_id  INT NOT NULL, -- owner/creator of the template
+            id          INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            account_id  INT UNSIGNED NOT NULL, -- owner/creator of the template
             title       VARCHAR(128) NOT NULL,
             version     VARCHAR(16),
-            body        TEXT NOT NULL,
+            body        TEXT,
             -- initially template is editable (versioned on date is null)
             -- non-null value means template is not editable anymore
             -- template cannot go back to editable state once this date is set
@@ -118,9 +132,9 @@
         );
         -- contract / draft is a template with the placeholders defined
         CREATE TABLE contract(
-            id          INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            account_id  INT NOT NULL, -- draft owner/creator
-            template_id INT, -- null value means contract is not based on the template
+            id          INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            account_id  INT UNSIGNED NOT NULL, -- draft owner/creator
+            template_id INT UNSIGNED, -- null value means contract is not based on the template
             memo        VARCHAR(128) NOT NULL, -- draft name not to be confused with template title
             body        TEXT, -- may contain placeholders as well
             -- initially contract is a draft and its editable (proposed on date is null)
@@ -139,7 +153,7 @@
         );
         -- one to many mapping between contract and its variables/placeholders values
         CREATE TABLE contract_variable(
-            contract_id INT NOT NULL,
+            contract_id INT UNSIGNED NOT NULL,
             name        VARCHAR(16) NOT NULL, -- variable/placeholder name
             value       VARCHAR(64) NOT NULL, -- variable/placeholder value
 
@@ -152,8 +166,8 @@
         );
         -- a dialog between parties to sign the contract
         CREATE TABLE deal(
-            id          INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            account_id  INT NOT NULL, -- account which initiated the deal
+            id          INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            account_id  INT UNSIGNED NOT NULL, -- account which initiated the deal
             title       VARCHAR(128),
 
             rec_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -166,15 +180,15 @@
         -- contract proposals, messages and everything else related to a deal
         -- append-only table
         CREATE TABLE deal_dialog(
-            id          INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            deal_id     INT NOT NULL,
-            account_id  INT NOT NULL, -- the person who sends a message
-            seq_num     INT NOT NULL, -- message sequence number within dialog
+            id          INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            deal_id     INT UNSIGNED NOT NULL,
+            account_id  INT UNSIGNED NOT NULL, -- the person who sends a message
+            seq_num     INT UNSIGNED NOT NULL, -- message sequence number within dialog
             message     TEXT,
             attachment  BLOB,
             -- first message (seq_num = 0) must contain an initial proposal
             -- following messages (seq_num > 0) may contain counter proposals
-            contract_id INT,
+            contract_id INT UNSIGNED,
 
             rec_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             rec_updated TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP, -- probably won't be used (messages are non-editable)
@@ -187,9 +201,9 @@
         );
         -- one to many mapping between contract and parties
         CREATE TABLE contract_party(
-            id          INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            contract_id INT NOT NULL,
-            account_id  INT NOT NULL,
+            id          INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            contract_id INT UNSIGNED NOT NULL,
+            account_id  INT UNSIGNED NOT NULL,
             party_label VARCHAR(16) NOT NULL, -- party label as it is in contract template
             valid_until DATETIME NOT NULL,
             signature   BINARY(132),
