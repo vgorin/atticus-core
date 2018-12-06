@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+	<comment>Database Queries Storage</comment>
+	<entry key="create_account"><![CDATA[
+		INSERT INTO user_acc(
+			email,
+			username,
+			password,
+			legal_name,
+			language_code,
+			country_code,
+			timezone_tz
+		)
+		VALUES(?, ? ,?, ?, ?, ?, ?);
+]]></entry>
+	<entry key="get_account"><![CDATA[
+		SELECT * FROM user_acc
+		WHERE
+			id = ? AND
+			active = 1;
+]]></entry>
+	<entry key="update_account"><![CDATA[
+		UPDATE user_acc SET
+			email = ?,
+			username = ?,
+			password = ?,
+			legal_name = ?,
+			language_code = ?,
+			country_code = ?,
+			timezone_tz = ?
+		WHERE
+			id = ? AND
+			active = 1;
+]]></entry>
+	<entry key="delete_account"><![CDATA[
+		UPDATE user_acc SET
+			active = 0
+		WHERE
+			id = ? AND
+			active = 1;
+]]></entry>
+	<entry key="list_accounts"><![CDATA[
+		SELECT * FROM user_acc
+		WHERE
+			active = 1;
+]]></entry>
+
+	<entry key="create_contract_template"><![CDATA[
+		INSERT INTO contract_template(
+			account_id,
+			title,
+			version,
+			body
+		)
+		VALUES(?, ? ,?, ?);
+]]></entry>
+	<entry key="get_contract_template"><![CDATA[
+		SELECT * FROM contract_template
+		WHERE
+			id = ? AND
+			account_id = ?
+			AND deleted IS NULL;
+]]></entry>
+	<entry key="update_contract_template"><![CDATA[
+		UPDATE contract_template SET
+			title = ?,
+			version = ?,
+			body = ?
+		WHERE
+			id = ? AND
+			account_id = ? AND
+			versioned IS NULL AND
+			deleted IS NOT NULL;
+]]></entry>
+	<entry key="delete_contract_template"><![CDATA[
+		UPDATE contract_template SET
+			deleted = now()
+		WHERE
+			id = ? AND
+			account_id = ? AND
+			deleted IS NULL;
+]]></entry>
+	<entry key="list_contract_templates"><![CDATA[
+		SELECT * FROM contract_template
+		WHERE
+			account_id = ? AND
+			deleted IS NULL;
+]]></entry>
+	<entry key="release_contract_template"><![CDATA[
+		UPDATE contract_template SET
+			versioned = NOW()
+		WHERE
+			id = ? AND
+			account_id = ? AND
+			versioned IS NULL AND
+			deleted IS NULL AND
+			version IS NOT NULL;
+]]></entry>
+	<entry key="publish_contract_template"><![CDATA[
+		UPDATE contract_template SET
+			published = NOW()
+		WHERE
+			id = ? AND
+			account_id = ? AND
+			versioned IS NOT NULL AND
+			deleted IS NULL AND
+			published IS NULL;
+]]></entry>
+</properties>

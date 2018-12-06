@@ -25,10 +25,12 @@ import static one.atticus.core.services.PackageUtils.authenticate;
 @Path("/template")
 public class ContractTemplateService {
     private final JdbcTemplate jdbc;
+    private final Queries queries;
 
     @Autowired
-    public ContractTemplateService(JdbcTemplate jdbc) {
+    public ContractTemplateService(JdbcTemplate jdbc, Queries queries) {
         this.jdbc = jdbc;
+        this.queries = queries;
     }
 
     @Path("/")
@@ -42,7 +44,7 @@ public class ContractTemplateService {
             jdbc.update(
                     c -> {
                         PreparedStatement ps = c.prepareStatement(
-                                "INSERT INTO contract_template(account_id, title, version, body) VALUES(?, ? ,?, ?)",
+                                queries.get("create_contract_template"),
                                 Statement.RETURN_GENERATED_KEYS
                         );
                         ps.setInt(1, accountId);
@@ -68,14 +70,7 @@ public class ContractTemplateService {
     public ContractTemplate retrieve(@Context SecurityContext context, @PathParam("templateId") int templateId) {
         int accountId = authenticate(context);
         ContractTemplate template = jdbc.query(
-                c -> {
-                    PreparedStatement ps = c.prepareStatement(
-                            "SELECT * FROM contract_template WHERE id = ? AND account_id = ?"
-                    );
-                    ps.setInt(1, templateId);
-                    ps.setInt(2, accountId);
-                    return ps;
-                },
+                c -> preparedStatement(c, templateId, accountId, queries.get("get_contract_template")),
                 this::getContractTemplate
         );
         if(template == null) {
@@ -91,9 +86,7 @@ public class ContractTemplateService {
         int accountId = authenticate(context);
         int rowsUpdated = jdbc.update(
                 c -> {
-                    PreparedStatement ps = c.prepareStatement(
-                            "UPDATE contract_template SET title = ?, version = ?, body = ? WHERE id = ? AND account_id = ? AND versioned IS NULL AND deleted IS NOT NULL"
-                    );
+                    PreparedStatement ps = c.prepareStatement(queries.get("update_contract_template"));
                     ps.setString(1, template.title);
                     ps.setString(2, template.version);
                     ps.setString(3, template.body);
@@ -103,27 +96,17 @@ public class ContractTemplateService {
                 }
         );
         if(rowsUpdated == 0) {
-            throw new NotFoundException();
+            throw new NotFoundException("template doesn't exist, deleted or is not editable (versioned / published)");
         }
     }
 
     @DELETE
     @Path("/{templateId}")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public void delete(@Context SecurityContext context, @PathParam("templateId") int templateId, ContractTemplate template) {
         int accountId = authenticate(context);
-        int rowsUpdated = jdbc.update(
-                c -> {
-                    PreparedStatement ps = c.prepareStatement(
-                            "UPDATE contract_template SET deleted = now() WHERE id = ? and account_id = ? AND deleted IS NULL"
-                    );
-                    ps.setInt(1, templateId);
-                    ps.setInt(2, accountId);
-                    return ps;
-                }
-        );
+        int rowsUpdated = jdbc.update(c -> preparedStatement (c, templateId, accountId, queries.get("delete_contract_template")));
         if(rowsUpdated == 0) {
-            throw new BadRequestException("template doesn't exist or already deleted");
+            throw new NotFoundException("template doesn't exist or already deleted");
         }
     }
 
@@ -132,40 +115,25 @@ public class ContractTemplateService {
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public List<ContractTemplate> listTemplates(@Context SecurityContext context) {
         int accountId = authenticate(context);
-        List<ContractTemplate> templates = jdbc.query(
+        return jdbc.query(
                 c -> {
-                    PreparedStatement ps = c.prepareStatement(
-                            "SELECT * FROM contract_template WHERE account_id = ?"
-                    );
+                    PreparedStatement ps = c.prepareStatement(queries.get("list_contract_templates"));
                     ps.setInt(1, accountId);
                     return ps;
                 },
                 this::getContractTemplates
         );
-        if(templates == null || templates.isEmpty()) {
-            throw new NotFoundException();
-        }
-        return templates;
     }
 
     @PUT
-    @Path("/version/{templateId}")
+    @Path("/release/{templateId}")
     @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public void version(@Context SecurityContext context, @PathParam("templateId") int templateId) {
+    public void release(@Context SecurityContext context, @PathParam("templateId") int templateId) {
         int accountId = authenticate(context);
 
-        int rowsUpdated = jdbc.update(
-                c -> {
-                    PreparedStatement ps = c.prepareStatement(
-                            "UPDATE contract_template SET versioned = NOW() WHERE id = ? AND account_id = ? AND versioned IS NULL AND deleted IS NULL AND version IS NOT NULL"
-                    );
-                    ps.setInt(1, templateId);
-                    ps.setInt(2, accountId);
-                    return ps;
-                }
-        );
+        int rowsUpdated = jdbc.update(c -> preparedStatement(c, templateId, accountId, queries.get("release_contract_template")));
         if(rowsUpdated == 0) {
-            throw new BadRequestException("template doesn't exist, doesn't have a version, deleted or already versioned");
+            throw new NotFoundException("template doesn't exist, doesn't have a version, deleted or already versioned");
         }
     }
 
@@ -175,19 +143,17 @@ public class ContractTemplateService {
     public void publish(@Context SecurityContext context, @PathParam("templateId") int templateId) {
         int accountId = authenticate(context);
 
-        int rowsUpdated = jdbc.update(
-                c -> {
-                    PreparedStatement ps = c.prepareStatement(
-                            "UPDATE contract_template SET published = NOW() WHERE id = ? AND account_id = ? AND versioned IS NOT NULL AND deleted IS NULL AND published IS NULL"
-                    );
-                    ps.setInt(1, templateId);
-                    ps.setInt(2, accountId);
-                    return ps;
-                }
-        );
+        int rowsUpdated = jdbc.update(c -> preparedStatement(c, templateId, accountId, queries.get("publish_contract_template")));
         if(rowsUpdated == 0) {
-            throw new BadRequestException("template doesn't exist, not versioned, deleted or already published");
+            throw new NotFoundException("template doesn't exist, not versioned, deleted or already published");
         }
+    }
+
+    private PreparedStatement preparedStatement(Connection c, int templateId, int accountId, String query) throws SQLException {
+        PreparedStatement ps = c.prepareStatement(query);
+        ps.setInt(1, templateId);
+        ps.setInt(2, accountId);
+        return ps;
     }
 
     private List<ContractTemplate> getContractTemplates(ResultSet rs) throws SQLException {
@@ -206,6 +172,7 @@ public class ContractTemplateService {
         Date versioned = rs.getDate("versioned");
         Date deleted = rs.getDate("deleted");
         Date published = rs.getDate("published");
+        Date updated = rs.getDate("rec_updated");
 
         ContractTemplate template = new ContractTemplate();
         template.templateId = rs.getInt("id");
@@ -216,6 +183,8 @@ public class ContractTemplateService {
         template.versioned = versioned == null? null: versioned.getTime();
         template.deleted = deleted == null? null: deleted.getTime();
         template.published = published == null? null: published.getTime();
+        template.created = rs.getDate("rec_created").getTime();
+        template.updated = updated == null? null: updated.getTime();
 
         return template;
     }

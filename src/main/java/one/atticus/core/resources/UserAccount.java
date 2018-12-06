@@ -17,6 +17,9 @@ public class UserAccount extends AbstractJson {
     @XmlElement
     public String password;
 
+    @XmlElement
+    public byte[] passwordHash;
+
     @XmlElement(name = "legal_name")
     public String legalName;
 
@@ -28,4 +31,10 @@ public class UserAccount extends AbstractJson {
 
     @XmlElement
     public String timezone;
+
+    @XmlElement
+    public long created;
+
+    @XmlElement
+    public Long updated;
 }

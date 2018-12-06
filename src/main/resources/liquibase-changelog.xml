@@ -25,6 +25,7 @@
         );
         CREATE TABLE user_acc (
             id            INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            role_id       TINYINT UNSIGNED NOT NULL DEFAULT 1,
             email         VARCHAR(64) NOT NULL UNIQUE KEY,
             username      VARCHAR(16) UNIQUE KEY,
             password      BINARY(64) NOT NULL,
@@ -32,12 +33,11 @@
             language_code CHAR(3),
             country_code  CHAR(2),
             timezone_tz   VARCHAR(64),
-            role_id       TINYINT UNSIGNED NOT NULL DEFAULT 1,
 
             active        BIT NOT NULL DEFAULT 1, -- set to zero to delete an account
 
-            created       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated       TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+            rec_created   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            rec_updated   TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
 
             FOREIGN KEY FK_user_account_language_code(language_code) REFERENCES language(code),
             FOREIGN KEY FK_user_account_country_code(country_code) REFERENCES country(code),
@@ -50,6 +50,7 @@
     <sql>
         CREATE VIEW user_account (
             id,
+            role,
             email,
             username,
             password,
@@ -57,10 +58,12 @@
             language,
             country,
             timezone,
-            role
+            created,
+            updated
         ) AS
         SELECT
             a.id,
+            r.name,
             a.email,
             a.username,
             a.password,
@@ -68,16 +71,17 @@
             l.name,
             c.name,
             t.name,
-            r.name
+            a.rec_created,
+            a.rec_updated
         FROM user_acc a
+        LEFT JOIN user_role r
+            ON a.role_id = r.id
         LEFT JOIN language l
             ON a.language_code = l.code
         LEFT JOIN country c
             ON a.country_code = c.code
         LEFT JOIN timezone t
-            ON a.timezone_tz = t.tz
-        LEFT JOIN user_role r
-            ON a.role_id = r.id;
+            ON a.timezone_tz = t.tz;
     </sql>
 </changeSet>
 <changeSet id="user_acc_fill_data-DML" author="vgorin">
@@ -103,6 +107,10 @@
             VALUES('joedoe@example.com', 'joedoe', 0x7326E9C00036473E2EBF90A46E62DBB7E7655D6AD68FDD2B8C6CDAB6A741CD01E00DA0EECD868C2319E359C4EF8866D23C3C9B9EFACE598ADFEB88BCD5D941FD, 'Joe Doe LLC', 'eng', 'US', 'America/Los_Angeles');
         INSERT INTO user_acc(email, username, password, legal_name, language_code, country_code, timezone_tz)
             VALUES('1', '1', 0x293F24556AD4665AABF2457D5F6EB3A90DF0EAA85058F0D20CC43626F0A3934C225D9E1CD1950D5ECC5949470D625721B322BE3F616DBD91C9FA961EE3CCC90E, '1', 'eng', 'US', 'America/Los_Angeles');
+
+        -- insert admin account
+        INSERT INTO user_acc(role_id, email, username, password, language_code, country_code, timezone_tz)
+            VALUES(255, 'admin@atticus.com', 'admin', 0x457DCC63CA48F642E567919F67BF53BF2F01B982978CFE3B39522ED25B84A2E1ABDB800855DA3B5F74228EA05A81593BDA9529A9105EAC691C9F7ACC55C3CF74, 'eng', 'US', 'America/Los_Angeles');
     </sql>
 </changeSet>
 

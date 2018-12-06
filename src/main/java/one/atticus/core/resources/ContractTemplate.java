@@ -28,4 +28,10 @@ public class ContractTemplate extends AbstractJson {
 
     @XmlElement
     public Long published;
+
+    @XmlElement
+    public long created;
+
+    @XmlElement
+    public Long updated;
 }
