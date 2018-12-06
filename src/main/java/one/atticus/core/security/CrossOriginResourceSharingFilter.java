@@ -1,4 +1,4 @@
-package one.atticus.core;
+package one.atticus.core.security;
 
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerResponseContext;

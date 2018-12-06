@@ -1,108 +1,149 @@
 package one.atticus.core.services;
 
-import one.atticus.core.resources.Deal;
-import one.atticus.core.resources.DealDialog;
-import one.atticus.core.resources.Party;
+import one.atticus.core.config.AppConfig;
 import org.codehaus.plexus.util.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.ws.rs.*;
-import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import java.sql.Date;
+import javax.ws.rs.core.SecurityContext;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.Objects;
+
+import static one.atticus.core.services.PackageUtils.authenticate;
+
+/**
+ * @author vgorin
+ * file created on 12/6/18 8:16 PM
+ */
+
 
 @Service
 @Path("/deal")
 public class DealService {
     private final JdbcTemplate jdbc;
+    private final AppConfig queries;
 
     @Autowired
-    public DealService(JdbcTemplate jdbc) {
+    public DealService(JdbcTemplate jdbc, AppConfig queries) {
         this.jdbc = jdbc;
+        this.queries = queries;
     }
 
-    @Path("/")
     @POST
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public Deal create(Deal deal) {
-        if(deal.dialog == null || deal.dialog.size() == 0) {
-           throw new BadRequestException("deal must begin with a dialog (deal.dialog cannot be empty)");
+    @Path("/send")
+    @Transactional
+    public int sendContractProposal(
+            @Context SecurityContext context,
+            @QueryParam("contract_id") int contractId,
+            @QueryParam("to_account_id") int toAccountId,
+            @QueryParam("deal_title") String dealTitle
+    ) {
+        int accountId = authenticate(context);
+
+        // 1. update contract – set proposed date
+        int rowsUpdated = jdbc.update(
+                c -> {
+                    PreparedStatement ps = c.prepareStatement(queries.getQuery("send_contract_proposal_update_contract"));
+                    ps.setInt(1, contractId);
+                    ps.setInt(2, accountId);
+                    return ps;
+                }
+        );
+        if(rowsUpdated == 0) {
+            throw new NotFoundException("contract doesn't exist, deleted or is already proposed");
         }
 
-        DealDialog dialog0 = deal.dialog.get(0);
-
-        if(dialog0.contractId == null) {
-            throw new BadRequestException("deal must begin with contract proposal (deal.dialog[0].contract_id must be specified");
-        }
-
-        if(deal.parties == null || deal.parties.size() < 2) {
-            throw new BadRequestException("deal must contain at least two parties");
-        }
-
+        // 2. insert a deal
+        KeyHolder keyHolder = new GeneratedKeyHolder();
         try {
-            KeyHolder keyHolder = new GeneratedKeyHolder();
             jdbc.update(
                     c -> {
                         PreparedStatement ps = c.prepareStatement(
-                                "INSERT INTO deal(account_id, title) VALUES(?, ?)",
+                                queries.getQuery("send_contract_proposal_create_deal"),
                                 Statement.RETURN_GENERATED_KEYS
                         );
-                        ps.setInt(1, deal.accountId);
-                        ps.setString(2, deal.title);
+                        ps.setInt(1, accountId);
+                        ps.setString(2, dealTitle);
                         return ps;
                     },
                     keyHolder
             );
-            deal.dealId = Objects.requireNonNull(keyHolder.getKey()).intValue();
+        }
+        catch(DuplicateKeyException e) {
+            throw new ClientErrorException(ExceptionUtils.getRootCause(e).getMessage(), Response.Status.CONFLICT, e);
+        }
+        int dealId = Objects.requireNonNull(keyHolder.getKey()).intValue();
 
+        // 3. insert first deal dialog (message)
+        try {
             jdbc.update(
                     c -> {
                         PreparedStatement ps = c.prepareStatement(
-                                "INSERT INTO deal_dialog(deal_id, account_id, seq_num, message, attachment, contract_id) VALUES(?, ?, ?, ?, ?, ?)",
+                                queries.getQuery("send_contract_proposal_create_deal_dialog"),
                                 Statement.RETURN_GENERATED_KEYS
                         );
-                        ps.setInt(1, deal.dealId);
-                        ps.setInt(2, deal.accountId);
-                        ps.setInt(3, 0);
-                        ps.setString(4, dialog0.message);
-                        ps.setBytes(5, dialog0.attachment);
-                        ps.setInt(6, dialog0.contractId);
+                        ps.setInt(1, dealId);
+                        ps.setInt(2, accountId);
+                        ps.setInt(3, contractId);
                         return ps;
                     },
                     keyHolder
             );
-            dialog0.dialogId = Objects.requireNonNull(keyHolder.getKey()).intValue();
-            dialog0.sequenceNum = 0;
+        }
+        catch(DuplicateKeyException e) {
+            throw new ClientErrorException(ExceptionUtils.getRootCause(e).getMessage(), Response.Status.CONFLICT, e);
+        }
+        int dealDialogId = Objects.requireNonNull(keyHolder.getKey()).intValue();
 
-            for(Party party: deal.parties) {
-                jdbc.update(
-                        c -> {
-                            PreparedStatement ps = c.prepareStatement(
-                                    "INSERT INTO contract_party(contract_id, account_id, party_label, valid_until) VALUES(?, ?, ?, ?)",
-                                    Statement.RETURN_GENERATED_KEYS
-                            );
-                            ps.setInt(1, party.contractId);
-                            ps.setInt(2, party.accountId);
-                            ps.setString(3, "");
-                            ps.setDate(4, new Date(1L));
-                            return ps;
-                        },
-                        keyHolder
-                );
-                party.partyId = Objects.requireNonNull(keyHolder.getKey()).intValue();
-            }
+        // 4. insert contract party 1
+        insertContractParty(contractId, accountId, keyHolder);
+        int party1Id = Objects.requireNonNull(keyHolder.getKey()).intValue();
 
-            return deal;
+        // 5. insert contract party 2
+        insertContractParty(contractId, toAccountId, keyHolder);
+        int party2Id = Objects.requireNonNull(keyHolder.getKey()).intValue();
+
+        // 6. sign the contract – party 1
+        rowsUpdated = jdbc.update(
+                c -> {
+                    PreparedStatement ps = c.prepareStatement(queries.getQuery("send_contract_proposal_sign_contract"));
+                    ps.setInt(1, contractId);
+                    ps.setInt(2, accountId);
+                    return ps;
+                }
+        );
+        if(rowsUpdated == 0) {
+            throw new NotFoundException("contract party doesn't exist, deleted or is already signed");
+        }
+
+        return dealId;
+    }
+
+    private void insertContractParty(@QueryParam("contract_id") int contractId, int accountId, KeyHolder keyHolder) {
+        try {
+            jdbc.update(
+                    c -> {
+                        PreparedStatement ps = c.prepareStatement(
+                                queries.getQuery("send_contract_proposal_create_contract_party"),
+                                Statement.RETURN_GENERATED_KEYS
+                        );
+                        ps.setInt(1, contractId);
+                        ps.setInt(2, accountId);
+                        ps.setTimestamp(3, new Timestamp(System.currentTimeMillis() + 604800000)); // plus 7 days
+                        return ps;
+                    },
+                    keyHolder
+            );
         }
         catch(DuplicateKeyException e) {
             throw new ClientErrorException(ExceptionUtils.getRootCause(e).getMessage(), Response.Status.CONFLICT, e);

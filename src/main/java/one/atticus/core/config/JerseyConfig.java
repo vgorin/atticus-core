@@ -1,45 +1,42 @@
-package one.atticus.core;
+package one.atticus.core.config;
 
-import io.swagger.jaxrs.config.BeanConfig;
-import io.swagger.jaxrs.listing.ApiListingResource;
+import one.atticus.core.security.CrossOriginResourceSharingFilter;
 import one.atticus.core.security.JerseyAuthFilter;
 import one.atticus.core.services.AccountService;
 import one.atticus.core.services.ContractService;
 import one.atticus.core.services.ContractTemplateService;
 import one.atticus.core.services.DealService;
+import one.atticus.core.util.JsonUtil;
+import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 import org.glassfish.jersey.server.ResourceConfig;
-import org.glassfish.jersey.server.wadl.internal.WadlResource;
 import org.springframework.stereotype.Component;
+
+/**
+ * @author vgorin
+ * file created on 12/6/18 7:20 PM
+ */
+
 
 @Component
 public class JerseyConfig extends ResourceConfig {
     public JerseyConfig() {
         // https://dzone.com/articles/using-jax-rs-with-spring-boot-instead-of-mvc
         // https://dzone.com/articles/7-reasons-i-do-not-use-jax-rs-in-spring-boot-web-a
+
+        // RESTful web service(s)
         register(AccountService.class);
         register(ContractService.class);
         register(ContractTemplateService.class);
         register(DealService.class);
+
+        // request filter(s)
         register(CrossOriginResourceSharingFilter.class);
-        register(AtticusExceptionMapper.class);
         register(JerseyAuthFilter.class);
-        configureSwagger();
-        registerEndpoints();
-    }
 
+        // exception mapper(s)
+        register(DefaultExceptionMapper.class);
 
-    private void configureSwagger() {
-        register(ApiListingResource.class);
-        BeanConfig beanConfig = new BeanConfig();
-        beanConfig.setVersion("1.0.2");
-        beanConfig.setSchemes(new String[]{"http"});
-        beanConfig.setHost("localhost:8080");
-        beanConfig.setBasePath("/");
-        beanConfig.setResourcePackage("one.atticus.core.services");
-        beanConfig.setPrettyPrint(true);
-        beanConfig.setScan(true);
-    }
-    private void registerEndpoints() {
-        register(WadlResource.class);
-    }
+        // JAXB JSON - configure Jersey object mapper
+        register(new JacksonJaxbJsonProvider(JsonUtil.OBJECT_MAPPER, JacksonJaxbJsonProvider.DEFAULT_ANNOTATIONS));
+   }
 }

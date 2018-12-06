@@ -130,6 +130,7 @@
             versioned   DATETIME, -- null value means template is editable
             deleted     DATETIME, -- null value means template is active
             published   DATETIME, -- null value means template is private
+            modified    DATETIME NOT NULL DEFAULT NOW(),
 
             rec_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             rec_updated TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
@@ -205,14 +206,14 @@
 
             FOREIGN KEY FK_deal_dialog_deal_id(deal_id) REFERENCES deal(id),
             FOREIGN KEY FK_deal_dialog_account_id(account_id) REFERENCES user_acc(id),
-            FOREIGN KEY FK_deal_dialog_contract_id(account_id) REFERENCES contract(id)
+            FOREIGN KEY FK_deal_dialog_contract_id(contract_id) REFERENCES contract(id)
         );
         -- one to many mapping between contract and parties
         CREATE TABLE contract_party(
             id          INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
             contract_id INT UNSIGNED NOT NULL,
             account_id  INT UNSIGNED NOT NULL,
-            party_label VARCHAR(16) NOT NULL, -- party label as it is in contract template
+            party_label VARCHAR(16), -- party label as it is in contract template
             valid_until DATETIME NOT NULL,
             signature   BINARY(132),
             signed_on   DATETIME,

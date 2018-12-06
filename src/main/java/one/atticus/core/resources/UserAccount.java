@@ -3,10 +3,16 @@ package one.atticus.core.resources;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+/**
+ * @author vgorin
+ *         file created on 12/6/18 1:41 PM
+ */
+
+
 @XmlRootElement
 public class UserAccount extends AbstractJson {
     @XmlElement(name = "account_id")
-    public int accountId;
+    public Integer accountId;
 
     @XmlElement
     public String email;
@@ -33,7 +39,7 @@ public class UserAccount extends AbstractJson {
     public String timezone;
 
     @XmlElement
-    public long created;
+    public Long created;
 
     @XmlElement
     public Long updated;

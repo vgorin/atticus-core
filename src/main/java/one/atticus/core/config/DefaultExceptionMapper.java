@@ -1,4 +1,4 @@
-package one.atticus.core;
+package one.atticus.core.config;
 
 import one.atticus.core.resources.ErrorMessage;
 
@@ -9,7 +9,7 @@ import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
 @Provider
-public class AtticusExceptionMapper implements ExceptionMapper<WebApplicationException> {
+public class DefaultExceptionMapper implements ExceptionMapper<WebApplicationException> {
     @Override
     public Response toResponse(WebApplicationException e) {
         int statusCode = e.getResponse().getStatus();

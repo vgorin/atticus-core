@@ -8,20 +8,21 @@ import one.atticus.core.util.JsonUtil;
  * to a pretty JSON format.
  *
  * @author vgorin
+ *         file created on 12/6/18 1:40 PM
  */
 
 
 public abstract class AbstractJson {
-	@Override
-	public String toString() {
-		return toPrettyJson();
-	}
+    @Override
+    public String toString() {
+        return toPrettyJson();
+    }
 
-	public String toJson() {
-		return JsonUtil.toJson(this);
-	}
+    public String toJson() {
+        return JsonUtil.toJson(this);
+    }
 
-	public String toPrettyJson() {
-		return JsonUtil.toPrettyJson(this);
-	}
+    public String toPrettyJson() {
+        return JsonUtil.toPrettyJson(this);
+    }
 }

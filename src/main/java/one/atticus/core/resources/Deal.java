@@ -20,4 +20,10 @@ public class Deal extends AbstractJson {
 
     @XmlElement
     public List<Party> parties;
+
+    @XmlElement
+    public Long created;
+
+    @XmlElement
+    public Long updated;
 }

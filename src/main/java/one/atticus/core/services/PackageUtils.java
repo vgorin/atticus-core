@@ -5,6 +5,12 @@ import javax.ws.rs.NotAuthorizedException;
 import javax.ws.rs.core.SecurityContext;
 import java.security.Principal;
 
+/**
+ * @author vgorin
+ * file created on 12/6/18 1:52 PM
+ */
+
+
 class PackageUtils {
     static int authenticate(SecurityContext context) {
         if(context == null || context.getAuthenticationScheme() == null || context.getUserPrincipal() == null) {

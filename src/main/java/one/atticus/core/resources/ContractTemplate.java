@@ -3,13 +3,19 @@ package one.atticus.core.resources;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+/**
+ * @author vgorin
+ *         file created on 12/6/18 2:18 PM
+ */
+
+
 @XmlRootElement
 public class ContractTemplate extends AbstractJson {
     @XmlElement(name = "template_id")
-    public int templateId;
+    public Integer templateId;
 
     @XmlElement(name = "account_id")
-    public int accountId;
+    public Integer accountId;
 
     @XmlElement
     public String title;
@@ -30,7 +36,10 @@ public class ContractTemplate extends AbstractJson {
     public Long published;
 
     @XmlElement
-    public long created;
+    public Long modified;
+
+    @XmlElement
+    public Long created;
 
     @XmlElement
     public Long updated;
