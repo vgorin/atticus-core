@@ -18,7 +18,7 @@
         SELECT * FROM user_acc
         WHERE
             id = ? AND
-            active = 1;
+            deleted IS NULL;
 ]]></entry>
     <entry key="update_account"><![CDATA[
         UPDATE user_acc SET
@@ -31,26 +31,26 @@
             timezone_tz = ?
         WHERE
             id = ? AND
-            active = 1;
+            deleted IS NULL;
 ]]></entry>
     <entry key="delete_account"><![CDATA[
         UPDATE user_acc SET
-            active = 0
+            deleted = NOW()
         WHERE
             id = ? AND
-            active = 1;
+            deleted IS NULL;
 ]]></entry>
     <entry key="list_accounts"><![CDATA[
         SELECT * FROM user_acc
         WHERE
-            active = 1;
+            deleted IS NULL;
 ]]></entry>
     <entry key="search_accounts"><![CDATA[
         SELECT * FROM user_acc
         WHERE
             (email LIKE ? OR
             username LIKE ?) AND
-            active = 1;
+            deleted IS NULL;
 ]]></entry>
 
     <entry key="create_contract_template"><![CDATA[
@@ -179,7 +179,7 @@
             deleted IS NULL AND
             proposed IS NOT NULL;
 ]]></entry>
-    <entry key="send_contract_proposal_update_contract"><![CDATA[
+    <entry key="init_deal__save_contract"><![CDATA[
         UPDATE contract SET
             proposed = now()
         WHERE
@@ -188,14 +188,14 @@
             proposed IS NULL AND
             deleted IS NULL;
 ]]></entry>
-    <entry key="send_contract_proposal_create_deal"><![CDATA[
+    <entry key="init_deal__create_deal"><![CDATA[
         INSERT INTO deal(
             account_id,
             title
         )
         VALUES(?, ?);
 ]]></entry>
-    <entry key="send_contract_proposal_create_deal_dialog"><![CDATA[
+    <entry key="init_deal__create_dialog"><![CDATA[
         INSERT INTO deal_dialog(
             deal_id,
             account_id,
@@ -204,7 +204,17 @@
         )
         VALUES(?, ?, 0, ?);
 ]]></entry>
-    <entry key="send_contract_proposal_create_contract_party"><![CDATA[
+    <entry key="init_deal__self_sign_contract"><![CDATA[
+        INSERT INTO contract_party(
+            contract_id,
+            account_id,
+            valid_until,
+            signature,
+            signed_on
+        )
+        VALUES(?, ?, ?, ?, NOW());
+]]></entry>
+    <entry key="init_deal__invite_contract_party"><![CDATA[
         INSERT INTO contract_party(
             contract_id,
             account_id,
@@ -212,15 +222,61 @@
         )
         VALUES(?, ?, ?);
 ]]></entry>
-    <entry key="send_contract_proposal_sign_contract"><![CDATA[
-        UPDATE contract_party SET
-            signature = 0x1,
-            signed_on = NOW()
+    <entry key="list_received_proposals"><![CDATA[
+        SELECT
+            d.*,
+            c.id AS contract_id
+        FROM contract c
+        INNER JOIN contract_party p
+            ON c.id = p.contract_id
+        INNER JOIN deal_dialog i
+            ON c.id = i.contract_id
+        INNER JOIN deal d
+            ON i.deal_id = d.id
         WHERE
-            contract_id = ? AND
-            account_id = ? AND
-            valid_until > NOW() AND
-            signature IS NULL AND
-            signed_on IS NULL;
+            p.account_id = ? AND
+            p.signature IS NULL AND
+            d.deleted IS NULL;
+]]></entry>
+    <entry key="retrieve_deal_dialog"><![CDATA[
+        SELECT * FROM deal_dialog
+        WHERE
+            deal_id = ?;
+]]></entry>
+    <entry key="list_deal_parties"><![CDATA[
+        SELECT * FROM contract_party
+        WHERE
+            contract_id = ?;
+]]></entry>
+
+    <entry key="list_received_proposals2"><![CDATA[
+        SELECT
+            d.id          AS deal_id,
+            d.title       AS deal_title,
+            d.rec_created AS deal_created,
+            d.rec_updated AS deal_updated,
+            i.id          AS dialog_id,
+            i.message     AS dialog_message,
+            i.attachment  AS dialog_attachment,
+            p.id          AS party_id,
+            p.party_label AS party_label,
+            p.valid_until AS party_valid_until,
+            p.signature   AS party_signature,
+            p.signed_on   AS party_signed_on,
+            c.id          AS contract_id,
+            c.account_id  AS owner_id,
+            c.template_id AS template_id,
+            c.memo        AS contract_memo,
+            c.body        AS contract_body
+        FROM contract c
+        INNER JOIN contract_party p
+            ON c.id = p.contract_id
+        INNER JOIN deal_dialog i
+            ON c.id = i.contract_id
+        INNER JOIN deal d
+            ON i.deal_id = d.id
+        WHERE
+            p.account_id = ? AND
+            p.signature IS NULL;
 ]]></entry>
 </properties>

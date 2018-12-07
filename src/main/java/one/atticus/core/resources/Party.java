@@ -19,11 +19,11 @@ public class Party {
     public String partyLabel;
 
     @XmlElement(name = "valid_until")
-    public Date validUntil;
+    public Long validUntil;
 
     @XmlElement
     public byte[] signature;
 
     @XmlElement(name = "signed_on")
-    public Date signedOn;
+    public Long signedOn;
 }

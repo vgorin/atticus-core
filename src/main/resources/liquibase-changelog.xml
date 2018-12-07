@@ -33,8 +33,7 @@
             language_code CHAR(3),
             country_code  CHAR(2),
             timezone_tz   VARCHAR(64),
-
-            active        BIT NOT NULL DEFAULT 1, -- set to zero to delete an account
+            deleted       DATETIME, -- null value means account is active
 
             rec_created   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             rec_updated   TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
@@ -59,7 +58,8 @@
             country,
             timezone,
             created,
-            updated
+            updated,
+            deleted
         ) AS
         SELECT
             a.id,
@@ -72,7 +72,8 @@
             c.name,
             t.name,
             a.rec_created,
-            a.rec_updated
+            a.rec_updated,
+            a.deleted
         FROM user_acc a
         LEFT JOIN user_role r
             ON a.role_id = r.id
@@ -178,6 +179,7 @@
             id          INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
             account_id  INT UNSIGNED NOT NULL, -- account which initiated the deal
             title       VARCHAR(128),
+            deleted     DATETIME, -- null value means deals is active
 
             rec_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             rec_updated TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
@@ -209,6 +211,7 @@
             FOREIGN KEY FK_deal_dialog_contract_id(contract_id) REFERENCES contract(id)
         );
         -- one to many mapping between contract and parties
+        -- unsigned, not expired records are active contract proposals
         CREATE TABLE contract_party(
             id          INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
             contract_id INT UNSIGNED NOT NULL,

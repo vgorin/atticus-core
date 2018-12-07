@@ -80,7 +80,7 @@ public class ContractService {
 
         Contract contract = jdbc.query(
                 c -> preparedStatement (c, contractId, accountId, queries.getQuery("get_contract")),
-                this::getContract
+                ContractService::getContract
         );
         if(contract == null) {
             throw new NotFoundException("contract doesn't exist / deleted");
@@ -131,53 +131,38 @@ public class ContractService {
     public List<Contract> listContracts(@Context SecurityContext context, @QueryParam("type") String type) {
         int accountId = authenticate(context);
 
-        switch(type) {
-            case "draft": {
-                return jdbc.query(
-                        c -> preparedStatement(c, accountId, queries.getQuery("list_draft_contracts")),
-                        this::getContracts
-                );
-            }
-            case "proposed": {
-                return jdbc.query(
-                        c -> preparedStatement(c, accountId, queries.getQuery("list_proposed_contracts")),
-                        this::getContracts
-                );
-            }
-            default: {
-                return jdbc.query(
-                        c -> preparedStatement(c, accountId, queries.getQuery("list_contracts")),
-                        this::getContracts
-                );
-            }
+        if("draft".equals(type)) {
+            return jdbc.query(
+                    c -> preparedStatement(c, accountId, queries.getQuery("list_draft_contracts")),
+                    ContractService::getContracts
+            );
         }
+        if("proposed".equals(type)) {
+            return jdbc.query(
+                    c -> preparedStatement(c, accountId, queries.getQuery("list_proposed_contracts")),
+                    ContractService::getContracts
+            );
+        }
+        return jdbc.query(
+                c -> preparedStatement(c, accountId, queries.getQuery("list_contracts")),
+                ContractService::getContracts
+        );
     }
 
-    @PUT
-    @Path("/propose/{contractId}")
-    public void propose(@Context SecurityContext context, @PathParam("contractId") int contractId) {
-        int accountId = authenticate(context);
-
-        int rowsUpdated = jdbc.update(c -> preparedStatement(c, contractId, accountId, queries.getQuery("propose_contract")));
-        if(rowsUpdated == 0) {
-            throw new NotFoundException("contract doesn't exist, deleted or already proposed");
-        }
-    }
-
-    private PreparedStatement preparedStatement(Connection c, int accountId, String query) throws SQLException {
+    private static PreparedStatement preparedStatement(Connection c, int accountId, String query) throws SQLException {
         PreparedStatement ps = c.prepareStatement(query);
         ps.setInt(1, accountId);
         return ps;
     }
 
-    private PreparedStatement preparedStatement(Connection c, int contractId, int accountId, String query) throws SQLException {
+    private static PreparedStatement preparedStatement(Connection c, int contractId, int accountId, String query) throws SQLException {
         PreparedStatement ps = c.prepareStatement(query);
         ps.setInt(1, contractId);
         ps.setInt(2, accountId);
         return ps;
     }
 
-    private List<Contract> getContracts(ResultSet rs) throws SQLException {
+    private static List<Contract> getContracts(ResultSet rs) throws SQLException {
         List<Contract> contracts = new LinkedList<>();
         Contract contract;
         while((contract = getContract(rs)) != null) {
@@ -186,7 +171,7 @@ public class ContractService {
         return contracts;
     }
 
-    private Contract getContract(ResultSet rs) throws SQLException {
+    private static Contract getContract(ResultSet rs) throws SQLException {
         if(!rs.next()) {
             return null;
         }

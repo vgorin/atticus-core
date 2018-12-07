@@ -43,4 +43,7 @@ public class UserAccount extends AbstractJson {
 
     @XmlElement
     public Long updated;
+
+    @XmlElement
+    public Long deleted;
 }

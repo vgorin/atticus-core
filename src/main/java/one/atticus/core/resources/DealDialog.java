@@ -6,16 +6,16 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement
 public class DealDialog {
     @XmlElement(name = "dialog_id")
-    public int dialogId;
+    public Integer dialogId;
 
     @XmlElement(name = "deal_id")
-    public int dealId;
+    public Integer dealId;
 
     @XmlElement(name = "account_id")
-    public int accountId;
+    public Integer accountId;
 
     @XmlElement(name = "seq_num")
-    public int sequenceNum;
+    public Integer sequenceNum;
 
     @XmlElement
     public String message;

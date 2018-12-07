@@ -7,10 +7,13 @@ import java.util.List;
 @XmlRootElement
 public class Deal extends AbstractJson {
     @XmlElement(name = "deal_id")
-    public int dealId;
+    public Integer dealId;
 
     @XmlElement(name = "account_id")
-    public int accountId;
+    public Integer accountId;
+
+    @XmlElement(name = "contract_id")
+    public Integer contractId;
 
     @XmlElement
     public String title;
