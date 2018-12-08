@@ -226,6 +226,61 @@
         SELECT
             d.*,
             c.id AS contract_id
+        FROM deal d
+        INNER JOIN deal_dialog i
+            ON d.id = i.deal_id
+        INNER JOIN contract c
+            ON i.contract_id = c.id
+        INNER JOIN contract_party p
+            ON c.id = p.contract_id
+        WHERE
+            p.account_id = ? AND
+            p.signature IS NULL AND
+            p.valid_until > NOW() AND
+            d.deleted IS NULL;
+]]></entry>
+    <entry key="list_submitted_proposals"><![CDATA[
+        SELECT
+            d.*,
+            c.id AS contract_id
+        FROM deal d
+        INNER JOIN deal_dialog i
+            ON d.id = i.deal_id
+        INNER JOIN contract c
+            ON i.contract_id = c.id
+        INNER JOIN contract_party p
+            ON c.id = p.contract_id
+           AND c.account_id = p.account_id
+        WHERE
+            d.account_id = ? AND
+            p.valid_until > NOW() AND
+            d.deleted IS NULL;
+]]></entry>
+    <entry key="list_active_deals"><![CDATA[
+        SELECT
+            d.*,
+            c.id AS contract_id
+        FROM deal d
+        INNER JOIN deal_dialog i
+            ON d.id = i.deal_id
+        INNER JOIN contract c
+            ON i.contract_id = c.id
+        INNER JOIN contract_party p
+            ON c.id = p.contract_id
+        WHERE
+            p.account_id = ? AND
+            p.signature IS NOT NULL AND
+            d.deleted IS NULL AND
+            p.contract_id NOT IN (
+                SELECT contract_id
+                FROM contract_party
+                WHERE signature IS NULL
+            );
+]]></entry>
+    <entry key="list_deals"><![CDATA[
+        SELECT
+            d.*,
+            c.id AS contract_id
         FROM contract c
         INNER JOIN contract_party p
             ON c.id = p.contract_id
@@ -247,6 +302,30 @@
         SELECT * FROM contract_party
         WHERE
             contract_id = ?;
+]]></entry>
+    <entry key="accept_deal"><![CDATA[
+        INSERT INTO deal_dialog(
+            deal_id,
+            account_id,
+            seq_num,
+            message
+        )
+        VALUES(
+            ?,
+            ?,
+            1,
+            ?
+        );
+]]></entry>
+    <entry key="sign_proposal"><![CDATA[
+        UPDATE contract_party SET
+            signature = ?,
+            signed_on = NOW()
+        WHERE
+            contract_id = ? AND
+            account_id = ? AND
+            valid_until > NOW() AND
+            signature IS NULL;
 ]]></entry>
 
     <entry key="list_received_proposals2"><![CDATA[

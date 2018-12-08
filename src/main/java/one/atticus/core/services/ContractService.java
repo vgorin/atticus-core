@@ -15,12 +15,14 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
-import java.sql.*;
-import java.util.LinkedList;
+import java.sql.PreparedStatement;
+import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Objects;
 
 import static one.atticus.core.services.PackageUtils.authenticate;
+import static one.atticus.core.services.PackageUtils.prepareStatement;
 
 /**
  * @author vgorin
@@ -79,8 +81,8 @@ public class ContractService {
         int accountId = authenticate(context);
 
         Contract contract = jdbc.query(
-                c -> preparedStatement (c, contractId, accountId, queries.getQuery("get_contract")),
-                ContractService::getContract
+                c -> prepareStatement(c, queries.getQuery("get_contract"), contractId, accountId),
+                PackageUtils::getContract
         );
         if(contract == null) {
             throw new NotFoundException("contract doesn't exist / deleted");
@@ -119,7 +121,7 @@ public class ContractService {
     @Path("/{contractId}")
     public void delete(@Context SecurityContext context, @PathParam("contractId") int contractId, Contract contract) {
         int accountId = authenticate(context);
-        int rowsUpdated = jdbc.update(c -> preparedStatement (c, contractId, accountId, queries.getQuery("delete_contract")));
+        int rowsUpdated = jdbc.update(c -> prepareStatement(c, queries.getQuery("delete_contract"), contractId, accountId));
         if(rowsUpdated == 0) {
             throw new NotFoundException("contract doesn't exist or already deleted");
         }
@@ -133,66 +135,20 @@ public class ContractService {
 
         if("draft".equals(type)) {
             return jdbc.query(
-                    c -> preparedStatement(c, accountId, queries.getQuery("list_draft_contracts")),
-                    ContractService::getContracts
+                    c -> prepareStatement(c, queries.getQuery("list_draft_contracts"), accountId),
+                    PackageUtils::getContracts
             );
         }
         if("proposed".equals(type)) {
             return jdbc.query(
-                    c -> preparedStatement(c, accountId, queries.getQuery("list_proposed_contracts")),
-                    ContractService::getContracts
+                    c -> prepareStatement(c, queries.getQuery("list_proposed_contracts"), accountId),
+                    PackageUtils::getContracts
             );
         }
         return jdbc.query(
-                c -> preparedStatement(c, accountId, queries.getQuery("list_contracts")),
-                ContractService::getContracts
+                c -> prepareStatement(c, queries.getQuery("list_contracts"), accountId),
+                PackageUtils::getContracts
         );
-    }
-
-    private static PreparedStatement preparedStatement(Connection c, int accountId, String query) throws SQLException {
-        PreparedStatement ps = c.prepareStatement(query);
-        ps.setInt(1, accountId);
-        return ps;
-    }
-
-    private static PreparedStatement preparedStatement(Connection c, int contractId, int accountId, String query) throws SQLException {
-        PreparedStatement ps = c.prepareStatement(query);
-        ps.setInt(1, contractId);
-        ps.setInt(2, accountId);
-        return ps;
-    }
-
-    private static List<Contract> getContracts(ResultSet rs) throws SQLException {
-        List<Contract> contracts = new LinkedList<>();
-        Contract contract;
-        while((contract = getContract(rs)) != null) {
-            contracts.add(contract);
-        }
-        return contracts;
-    }
-
-    private static Contract getContract(ResultSet rs) throws SQLException {
-        if(!rs.next()) {
-            return null;
-        }
-
-        Timestamp proposed = rs.getTimestamp("proposed");
-        Timestamp deleted = rs.getTimestamp("deleted");
-        Timestamp modified = rs.getTimestamp("modified");
-        Timestamp updated = rs.getTimestamp("rec_updated");
-
-        Contract template = new Contract();
-        template.contractId = rs.getInt("id");
-        template.accountId = rs.getInt("account_id");
-        template.memo = rs.getString("memo");
-        template.body = rs.getString("body");
-        template.proposed = proposed == null? null: proposed.getTime();
-        template.deleted = deleted == null? null: deleted.getTime();
-        template.modified = modified == null? null: modified.getTime();
-        template.updated = updated == null? null: updated.getTime();
-        template.created = rs.getTimestamp("rec_created").getTime();
-
-        return template;
     }
 
 }
