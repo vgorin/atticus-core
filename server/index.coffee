@@ -16,6 +16,13 @@ argv = require('minimist')(process.argv.slice(2))
 
 app = express()
 
+# cores
+app.use (req,res,next)->
+  res.header "Access-Control-Allow-Origin","*"
+  res.header "Access-Control-Allow-Headers","Origin, X-Requested-With, Content-Type, Accept, x-access-token"
+  res.header "Access-Control-Allow-Methods", "GET,POST,PUT,DELETE"
+  next()
+
 app.get /favicon\.ico/, (req, res)->
   res.end ''
 
@@ -29,13 +36,6 @@ app.use (req, res, next)->
     res.setHeader 'WWW-Authenticate', 'Basic realm="Yo need to authorize"'
     return res.end 'Authorisation required'
 
-  next()
-
-# cores
-app.use (req,res,next)->
-  res.header "Access-Control-Allow-Origin","*"
-  res.header "Access-Control-Allow-Headers","Origin, X-Requested-With, Content-Type, Accept, x-access-token"
-  res.header "Access-Control-Allow-Methods", "GET,POST,PUT,DELETE"
   next()
 
 app.get '/test', (req, res, next)->
@@ -55,6 +55,9 @@ app.use (req, res, next) ->
     method : req.method
     json : req.body
     qs : req.query
+    auth :
+      user: name
+      password: pass
   log options
   Q.npost request, req.method.toLowerCase(), [options]
   .then (rs)->
@@ -101,18 +104,13 @@ init()
   lerr e.stack or e
 
 # auto-deploy
+child_process = require 'child_process'
+last_revision = null;
 setInterval ->
-  do_exit = false
-  Q.npost pm2, 'connect'
-  .then ->
-    Q.npost pm2, 'describe', ['atticus-core']
-  .then (desc)->
-    log desc
-    if false
-      do_exit = true
-  .catch lerr
-  .then ->
-    Q.npost pm2, 'disconnect'
-  .fin ->
-    # or restart current proc
-    process.exit( 0 )
+  child_process.exec 'git rev-parse HEAD', (err, stdout)->
+    last_revision ?= stdout
+    if last_revision != stdout
+      # or restart current proc
+      process.exit 0
+, 60*1000
+
