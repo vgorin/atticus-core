@@ -1,7 +1,7 @@
 {
   "apps" : [
     {
-      "name"             : "attcius-core",
+      "name"             : "atticus-core",
       "script"           : "start.sh",
       "cwd"              : "/home/vgrn/ac/",
       "exec_mode"        : "fork_mode",
