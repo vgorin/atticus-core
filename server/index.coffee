@@ -7,6 +7,7 @@ bodyParser = require 'body-parser'
 path = require 'path'
 mysql = require 'mysql'
 request = require 'request'
+auth = require 'basic-auth'
 
 argv = require('minimist')(process.argv.slice(2))
 
@@ -36,9 +37,10 @@ app.get '/test', (req, res, next)->
 # catch 404 and forward to error handler
 app.use (req, res, next) ->
   # do proxy
+  { name, pass } = auth(req) or {}
   log req.method, req.body, req.params, req.query
   options =
-    url : 'http://1:1@localhost:5000' + req.url
+    url : "http://#{name}:#{pass}@localhost:5000" + req.url
     method : req.method
     json : req.body
     qs : req.query
