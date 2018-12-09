@@ -38,7 +38,7 @@ app.use (req, res, next) ->
   # do proxy
   log req.method, req.body, req.params, req.query
   options =
-    url : 'http://localhost:5000' + req.url
+    url : 'http://1:1@localhost:5000' + req.url
     method : req.method
     json : req.body
     qs : req.query
