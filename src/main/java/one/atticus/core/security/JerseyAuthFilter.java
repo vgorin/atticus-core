@@ -45,6 +45,8 @@ public class JerseyAuthFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
+        log.trace("{} {} {}{}", request.getProtocol(), request.getMethod(), request.getPathInfo(), request.getQueryString());
+
         try {
             String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 
@@ -75,6 +77,8 @@ public class JerseyAuthFilter implements ContainerRequestFilter {
         catch(AuthenticationException e) {
             log.debug("request authentication failed", e);
         }
+
+        log.trace("{} {} {}{} - auth filter complete", request.getProtocol(), request.getMethod(), request.getPathInfo(), request.getQueryString());
     }
 
     private ServiceAccount loadUserAccount(String authHeader) throws AuthenticationException {
