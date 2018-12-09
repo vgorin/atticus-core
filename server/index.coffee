@@ -99,3 +99,20 @@ init()
     log "Listening on port " + server.address().port
 .catch (e)->
   lerr e.stack or e
+
+# auto-deploy
+setInterval ->
+  do_exit = false
+  Q.npost pm2, 'connect'
+  .then ->
+    Q.npost pm2, 'describe', ['atticus-core']
+  .then (desc)->
+    log desc
+    if false
+      do_exit = true
+  .catch lerr
+  .then ->
+    Q.npost pm2, 'disconnect'
+  .fin ->
+    # or restart current proc
+    process.exit( 0 )
