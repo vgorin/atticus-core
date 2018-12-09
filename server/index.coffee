@@ -8,7 +8,7 @@ path = require 'path'
 mysql = require 'mysql'
 request = require 'request'
 auth = require 'basic-auth'
-child_process = require 'child_process'
+pm2 = require 'pm2'
 
 argv = require('minimist')(process.argv.slice(2))
 
@@ -73,9 +73,22 @@ app.use (err, req, res, next) ->
 # ===
 
 init = ->
-  Q.npost child_process, 'exec', [ 'pm2 restart atticus-core' ]
-  .then log
-  .catch lerr
+  Q.npost pm2, 'connect'
+  .then ->
+    Q.npost pm2, 'start', [{
+      "name"             : "atticus-core",
+      "script"           : "start.sh",
+      "cwd"              : "/home/vgrn/ac/",
+      "exec_mode"        : "fork_mode",
+      "merge_logs"       : true,
+      "watch"            : true,
+      "log_date_format"  : "YYYY-MM-DD HH:mm:ss Z",
+      "error_file"      : "/home/vgrn/logs/atticus-core-err.log",
+      "out_file"        : "/home/vgrn/logs/atticus-core-out.log",
+      "pid_file"        : "/home/vgrn/logs/atticus-core.pid"
+    }]
+  .then ->
+    Q.npost pm2, 'disconnect'
   .then ->
     global.mysql_conn = mysql.createConnection global.conf.mysql
     Q.npost global.mysql_conn, 'connect'
