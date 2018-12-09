@@ -76,6 +76,7 @@ init = ->
   Q.npost child_process, 'exec', [ 'pm2 restart atticus-core' ]
   .then log
   .catch lerr
+  .then ->
     global.mysql_conn = mysql.createConnection global.conf.mysql
     Q.npost global.mysql_conn, 'connect'
   .then ->
