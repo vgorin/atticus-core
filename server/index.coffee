@@ -46,8 +46,8 @@ app.use (req, res, next) ->
     qs : req.query
   log options
   Q.npost request, req.method.toLowerCase(), [options]
-  .then (res_json)->
-    res.json res_json
+  .then (rs)->
+    res.json rs[1]
   .catch next
 
   #err = new Error "Not Found: "+req.url
