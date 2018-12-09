@@ -6,6 +6,9 @@ express = require 'express'
 bodyParser = require 'body-parser'
 path = require 'path'
 mysql = require 'mysql'
+request = require 'request'
+auth = require 'basic-auth'
+child_process = require 'child_process'
 
 argv = require('minimist')(process.argv.slice(2))
 
@@ -18,6 +21,15 @@ app.get /favicon\.ico/, (req, res)->
 
 app.use bodyParser.json()
 app.use bodyParser.urlencoded extended: true
+app.use (req, res, next)->
+  { name, pass } = auth(req) or {}
+
+  if not name or not pass
+    res.statusCode = 401
+    res.setHeader 'WWW-Authenticate', 'Basic realm="Yo need to authorize"'
+    return res.end 'Authorisation required'
+
+  next()
 
 # cores
 app.use (req,res,next)->
@@ -29,14 +41,25 @@ app.use (req,res,next)->
 app.get '/test', (req, res, next)->
   res.end 'test ok'
 
-app.use '/auth',    require './routes/auth.coffee'
-app.use '/account', require './routes/account.coffee'
+#app.use '/auth',    require './routes/auth.coffee'
+#app.use '/account', require './routes/account.coffee'
 
 # catch 404 and forward to error handler
 app.use (req, res, next) ->
-  err = new Error "Not Found: "+req.url
-  err.status = 404
-  next err
+  # do proxy
+  { name, pass } = auth(req) or {}
+  log req.method, req.body, req.params, req.query
+  options =
+    #url : "http://#{name}:#{pass}@localhost:5000" + req.url
+    url : "http://#{name}:#{pass}@192.168.1.147:5000" + req.url
+    method : req.method
+    json : req.body
+    qs : req.query
+  log options
+  Q.npost request, req.method.toLowerCase(), [options]
+  .then (rs)->
+    res.json rs[1]
+  .catch next
 
 # error handler
 app.use (err, req, res, next) ->
@@ -50,14 +73,19 @@ app.use (err, req, res, next) ->
 # ===
 
 init = ->
-  global.mysql_conn = mysql.createConnection global.conf.mysql
-  Q.npost global.mysql_conn, 'connect'
+  Q.npost child_process, 'exec', [ 'pm2 restart atticus-core' ]
+  .then log
+  .then ->
+    global.mysql_conn = mysql.createConnection global.conf.mysql
+    Q.npost global.mysql_conn, 'connect'
   .then ->
     log 'MySQL connected'
+  .catch (e)->
+    lerr e
 
 init()
 .then ->
-  server = app.listen argv.port or 28081, ->
+  server = app.listen argv.port or 5001, ->
     log "Listening on port " + server.address().port
 .catch (e)->
   lerr e.stack or e
