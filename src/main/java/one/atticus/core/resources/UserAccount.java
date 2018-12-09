@@ -2,6 +2,7 @@ package one.atticus.core.resources;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.List;
 
 /**
  * @author vgorin
@@ -46,4 +47,13 @@ public class UserAccount extends AbstractJson {
 
     @XmlElement
     public Long deleted;
+
+    @XmlElement
+    public List<ContractTemplate> templates;
+
+    @XmlElement
+    public List<Contract> contracts;
+
+    @XmlElement
+    public List<Deal> deals;
 }

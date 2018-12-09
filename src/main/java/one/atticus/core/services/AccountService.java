@@ -39,10 +39,23 @@ public class AccountService {
     private final JdbcTemplate jdbc;
     private final AppConfig queries;
 
+    private final ContractTemplateService contractTemplateService;
+    private final ContractService contractService;
+    private final DealService dealService;
+
     @Autowired
-    public AccountService(JdbcTemplate jdbc, AppConfig queries) {
+    public AccountService(
+            JdbcTemplate jdbc,
+            AppConfig queries,
+            ContractTemplateService contractTemplateService,
+            ContractService contractService,
+            DealService dealService
+    ) {
         this.jdbc = jdbc;
         this.queries = queries;
+        this.contractTemplateService = contractTemplateService;
+        this.contractService = contractService;
+        this.dealService = dealService;
     }
 
     @POST
@@ -92,7 +105,13 @@ public class AccountService {
     @GET
     @Path("/{accountId}")
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public UserAccount retrieve(@Context SecurityContext context, @PathParam("accountId") int accountId) {
+    public UserAccount retrieve(
+            @Context SecurityContext context,
+            @PathParam("accountId") int accountId,
+            @QueryParam("includeTemplates") boolean includeTemplates,
+            @QueryParam("includeContracts") boolean includeContracts,
+            @QueryParam("includeDeals") boolean includeDeals
+    ) {
         int authAccountId = authenticate(context);
         if(accountId != authAccountId) {
             throw new ForbiddenException();
@@ -107,6 +126,15 @@ public class AccountService {
         );
         if(account == null) {
             throw new NotFoundException();
+        }
+        if(includeTemplates) {
+            account.templates = contractTemplateService.listTemplates(context);
+        }
+        if(includeContracts) {
+            account.contracts = contractService.listContracts(context, "all");
+        }
+        if(includeDeals) {
+            account.deals = dealService.listDeals(context);
         }
         return account;
     }
