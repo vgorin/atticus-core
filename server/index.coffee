@@ -81,11 +81,7 @@ init = ->
       "cwd"              : "/home/vgrn/ac/",
       "exec_mode"        : "fork_mode",
       "merge_logs"       : true,
-      "watch"            : true,
-      "log_date_format"  : "YYYY-MM-DD HH:mm:ss Z",
-      "error_file"      : "/home/vgrn/logs/atticus-core-err.log",
-      "out_file"        : "/home/vgrn/logs/atticus-core-out.log",
-      "pid_file"        : "/home/vgrn/logs/atticus-core.pid"
+      "log_date_format"  : "YYYY-MM-DD HH:mm:ss Z"
     }]
   .then ->
     Q.npost pm2, 'disconnect'
