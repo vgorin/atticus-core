@@ -4,7 +4,6 @@
       "name"            : "atticus-node",
       "script"          : "./server/index.coffee",
       "interpreter"     : "coffee",
-      "watch"           : true,
       "merge_logs"      : true,
       "cwd"             : "/home/vgrn/ac/",
       "exec_mode"       : "fork_mode",
