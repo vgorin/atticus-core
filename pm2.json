@@ -3,7 +3,7 @@
     {
       "name"             : "attcius-core",
       "script"           : "start.sh",
-      "cwd"              : "/home/vgrn/",
+      "cwd"              : "/home/vgrn/ac/",
       "exec_mode"        : "fork_mode",
       "merge_logs"       : true,
       "watch"            : true,
@@ -18,7 +18,7 @@
       "interpreter"     : "coffee",
       "watch"           : true,
       "merge_logs"      : true,
-      "cwd"             : "/home/vgrn/",
+      "cwd"             : "/home/vgrn/ac/",
       "exec_mode"       : "fork_mode",
       "log_date_format" : "YYYY-MM-DD HH:mm:ss Z",
       "error_file"      : "/home/vgrn/logs/atticus-node-err.log",
