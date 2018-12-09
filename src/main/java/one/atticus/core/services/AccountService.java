@@ -42,6 +42,7 @@ public class AccountService {
     }
 
     @POST
+    @Path("/")
     @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public int create(@Context SecurityContext context, UserAccount account) {
