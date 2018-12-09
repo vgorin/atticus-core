@@ -75,7 +75,7 @@ app.use (err, req, res, next) ->
 init = ->
   Q.npost child_process, 'exec', [ 'pm2 restart atticus-core' ]
   .then log
-  .then ->
+  .catch lerr
     global.mysql_conn = mysql.createConnection global.conf.mysql
     Q.npost global.mysql_conn, 'connect'
   .then ->
