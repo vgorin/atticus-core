@@ -55,6 +55,9 @@ app.use (req, res, next) ->
     method : req.method
     json : req.body
     qs : req.query
+    auth :
+      user: name
+      password: pass
   log options
   Q.npost request, req.method.toLowerCase(), [options]
   .then (rs)->
