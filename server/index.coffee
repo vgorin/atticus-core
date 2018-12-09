@@ -6,6 +6,7 @@ express = require 'express'
 bodyParser = require 'body-parser'
 path = require 'path'
 mysql = require 'mysql'
+request = require 'request'
 
 argv = require('minimist')(process.argv.slice(2))
 
@@ -29,15 +30,24 @@ app.use (req,res,next)->
 app.get '/test', (req, res, next)->
   res.end 'test ok'
 
-app.use '/auth',    require './routes/auth.coffee'
-
-app.use '/account', require './routes/account.coffee'
+#app.use '/auth',    require './routes/auth.coffee'
+#app.use '/account', require './routes/account.coffee'
 
 # catch 404 and forward to error handler
 app.use (req, res, next) ->
-  err = new Error "Not Found: "+req.url
-  err.status = 404
-  next err
+  # do proxy
+  options =
+    url : 'http://localhost:5000' + req.url
+    json : req.body
+  log options
+  Q.npost request, req.method.toLowerCase(), [{options}]
+  .then (res_json)->
+    res.json res_json
+  .catch next
+
+  #err = new Error "Not Found: "+req.url
+  #err.status = 404
+  #next err
 
 # error handler
 app.use (err, req, res, next) ->
@@ -58,7 +68,7 @@ init = ->
 
 init()
 .then ->
-  server = app.listen argv.port or 28081, ->
+  server = app.listen argv.port or 5001, ->
     log "Listening on port " + server.address().port
 .catch (e)->
   lerr e.stack or e
