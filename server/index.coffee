@@ -43,7 +43,7 @@ app.use (req, res, next) ->
     json : req.body
     qs : req.query
   log options
-  Q.npost request, req.method.toLowerCase(), [{options}]
+  Q.npost request, req.method.toLowerCase(), [options]
   .then (res_json)->
     res.json res_json
   .catch next
