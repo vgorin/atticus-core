@@ -101,18 +101,13 @@ init()
   lerr e.stack or e
 
 # auto-deploy
-#setInterval ->
-#  do_exit = false
-#  Q.npost pm2, 'connect'
-#  .then ->
-#    Q.npost pm2, 'describe', ['atticus-core']
-#  .then (desc)->
-#    log desc
-#    if false
-#      do_exit = true
-#  .catch lerr
-#  .then ->
-#    Q.npost pm2, 'disconnect'
-#  .fin ->
-#    # or restart current proc
-#    process.exit( 0 )
+child_process = require 'child_process'
+last_revision = null;
+setInterval ->
+  child_process.exec 'git rev-parse HEAD', (err, stdout)->
+    last_revision ?= stdout
+    if last_revision != stdout
+      # or restart current proc
+      process.exit 0
+, 60*1000
+
