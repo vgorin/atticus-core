@@ -4,6 +4,8 @@ import one.atticus.core.config.AppConfig;
 import one.atticus.core.resources.UserAccount;
 import one.atticus.core.util.PasswordUtil;
 import org.codehaus.plexus.util.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -32,6 +34,8 @@ import static one.atticus.core.services.PackageUtils.authenticate;
 @Service
 @Path("/account")
 public class AccountService {
+    private final Logger log = LoggerFactory.getLogger(getClass());
+
     private final JdbcTemplate jdbc;
     private final AppConfig queries;
 
@@ -46,12 +50,15 @@ public class AccountService {
     @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public int create(@Context SecurityContext context, UserAccount account) {
+        log.trace("creating account: {}", account);
+
         byte[] passwordHash = PasswordUtil.passwordHash(account.password);
 
         try {
             KeyHolder keyHolder = new GeneratedKeyHolder();
             jdbc.update(
                     c -> {
+                        log.trace("connecting to database...");
                         PreparedStatement ps = c.prepareStatement(
                                 queries.getQuery("create_account"),
                                 Statement.RETURN_GENERATED_KEYS
@@ -63,13 +70,19 @@ public class AccountService {
                         ps.setString(5, account.languageCode);
                         ps.setString(6, account.countryCode);
                         ps.setString(7, account.timezone);
+
+                        log.trace("executing {}", queries.getQuery("create_account"));
                         return ps;
                     },
                     keyHolder
             );
+            int accountId = Objects.requireNonNull(keyHolder.getKey()).intValue();
+            account.accountId = accountId;
+
+            log.debug("account successfully created: {}", account);
 
             // TODO: replace with 201 Created
-            return  Objects.requireNonNull(keyHolder.getKey()).intValue();
+            return accountId;
         }
         catch(DuplicateKeyException e) {
             throw new ClientErrorException(ExceptionUtils.getRootCause(e).getMessage(), Response.Status.CONFLICT, e);
