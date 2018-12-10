@@ -112,10 +112,7 @@ public class AccountService {
             @QueryParam("includeContracts") boolean includeContracts,
             @QueryParam("includeDeals") boolean includeDeals
     ) {
-        int authAccountId = authenticate(context);
-        if(accountId != authAccountId) {
-            throw new ForbiddenException();
-        }
+        authenticate(context);
         UserAccount account = jdbc.query(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(queries.getQuery("get_account"));
