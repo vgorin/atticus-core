@@ -9,6 +9,9 @@ public class Party {
     @XmlElement(name = "party_id")
     public int partyId;
 
+    @XmlElement
+    public UserAccount party;
+
     @XmlElement(name = "contract_id")
     public int contractId;
 
