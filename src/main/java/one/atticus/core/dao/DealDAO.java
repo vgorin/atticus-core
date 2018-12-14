@@ -30,16 +30,16 @@ public class DealDAO {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final JdbcTemplate jdbc;
-    private final AppConfig queries;
+    private final AppConfig config;
 
     @Autowired
-    public DealDAO(JdbcTemplate jdbc, AppConfig queries) {
+    public DealDAO(JdbcTemplate jdbc, AppConfig config) {
         this.jdbc = jdbc;
-        this.queries = queries;
+        this.config = config;
     }
 
     @Transactional
-    public int submit(int contractId, int accountId, int toAccountId, String dealTitle) {
+    public int submitNewDeal(int contractId, int accountId, int toAccountId, String dealTitle, long validityPeriod) {
         // 1. update contract – set proposed date
         saveContract(contractId, accountId);
 
@@ -47,10 +47,10 @@ public class DealDAO {
         int dealId = createNewDeal(accountId, dealTitle);
 
         // 3. insert first deal dialog (message)
-        createDealDialog(dealId, accountId, contractId);
+        postFirstDialogMessage(dealId, accountId, contractId);
 
         // contract is valid until 7 days from now
-        long validUntil = System.currentTimeMillis() + 604800000; // 7 * 24 * 3600 * 1000
+        long validUntil = System.currentTimeMillis() + validityPeriod;
 
         // 4. self sign the contract
         selfSignContract(contractId, accountId, validUntil);
@@ -61,26 +61,51 @@ public class DealDAO {
         return dealId;
     }
 
+    @Transactional
+    public int postCounterProposal(int dealId, int accountId, int contractId, long validityPeriod) {
+        // TODO: verify account is part of the deal and can post
+        // 1. post message into dialog
+        int dialogId = postNthDialogMessage(dealId, accountId, contractId);
+
+        // contract is valid until 7 days from now
+        long validUntil = System.currentTimeMillis() + validityPeriod;
+
+        // 2. self sign the contract
+        selfSignContract(contractId, accountId, validUntil);
+
+        // 3. determine parties of the deal
+        List<Integer> parties = listDealParties(dealId);
+
+        // 4. invite another parties to the contract
+        for(int party: parties) {
+            if(party != accountId) {
+                inviteContractParty(contractId, party, validUntil);
+            }
+        }
+
+        return dialogId;
+    }
+
     public List<Deal> listSubmittedProposals(int accountId) {
-        return fetchDeals(accountId, queries.getQuery("list_submitted_proposals"));
+        return fetchDeals(accountId, config.getQuery("list_submitted_proposals"));
     }
 
     public List<Deal> listReceivedProposals(int accountId) {
-        return fetchDeals(accountId, queries.getQuery("list_received_proposals"));
+        return fetchDeals(accountId, config.getQuery("list_received_proposals"));
     }
 
     public List<Deal> listActiveDeals(int accountId) {
-        return fetchDeals(accountId, queries.getQuery("list_active_deals"));
+        return fetchDeals(accountId, config.getQuery("list_active_deals"));
     }
 
     public List<Deal> listDeals(int accountId) {
-        return fetchDeals(accountId, queries.getQuery("list_deals"));
+        return fetchDeals(accountId, config.getQuery("list_deals"));
     }
 
     private void saveContract(int contractId, int accountId) {
         int rowsUpdated = jdbc.update(
                 c -> {
-                    PreparedStatement ps = c.prepareStatement(queries.getQuery("init_deal__save_contract"));
+                    PreparedStatement ps = c.prepareStatement(config.getQuery("init_deal__save_contract"));
                     ps.setInt(1, contractId);
                     ps.setInt(2, accountId);
                     return ps;
@@ -96,7 +121,7 @@ public class DealDAO {
         jdbc.update(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
-                            queries.getQuery("init_deal__create_deal"),
+                            config.getQuery("init_deal__create_deal"),
                             Statement.RETURN_GENERATED_KEYS
                     );
                     ps.setInt(1, accountId);
@@ -108,12 +133,30 @@ public class DealDAO {
         return Objects.requireNonNull(keyHolder.getKey()).intValue();
     }
 
-    private int createDealDialog(int dealId, int accountId, int contractId) {
+    private int postFirstDialogMessage(int dealId, int accountId, int contractId) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbc.update(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
-                            queries.getQuery("init_deal__create_dialog"),
+                            config.getQuery("post_first_dialog_message"),
+                            Statement.RETURN_GENERATED_KEYS
+                    );
+                    ps.setInt(1, dealId);
+                    ps.setInt(2, accountId);
+                    ps.setInt(3, contractId);
+                    return ps;
+                },
+                keyHolder
+        );
+        return Objects.requireNonNull(keyHolder.getKey()).intValue();
+    }
+
+    private int postNthDialogMessage(int dealId, int accountId, int contractId) {
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbc.update(
+                c -> {
+                    PreparedStatement ps = c.prepareStatement(
+                            config.getQuery("post_nth_dialog_message"),
                             Statement.RETURN_GENERATED_KEYS
                     );
                     ps.setInt(1, dealId);
@@ -131,7 +174,7 @@ public class DealDAO {
         jdbc.update(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
-                            queries.getQuery("init_deal__self_sign_contract"),
+                            config.getQuery("self_sign_contract"),
                             Statement.RETURN_GENERATED_KEYS
                     );
                     ps.setInt(1, contractId);
@@ -150,7 +193,7 @@ public class DealDAO {
         jdbc.update(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
-                            queries.getQuery("init_deal__invite_contract_party"),
+                            config.getQuery("invite_contract_party"),
                             Statement.RETURN_GENERATED_KEYS
                     );
                     ps.setInt(1, contractId);
@@ -203,10 +246,27 @@ public class DealDAO {
         return deals;
     }
 
+    private List<Integer> listDealParties(int dealId) {
+        return jdbc.query(
+                c -> {
+                    PreparedStatement ps = c.prepareStatement(config.getQuery("list_deal_parties"));
+                    ps.setInt(1, dealId);
+                    return ps;
+                },
+                rs -> {
+                    List<Integer> parties = new LinkedList<>();
+                    while(rs.next()) {
+                        parties.add(rs.getInt("account_id"));
+                    }
+                    return parties;
+                }
+        );
+    }
+
     private List<DealDialog> retrieveDialog(int dealId) {
         return jdbc.query(
                 c -> {
-                    PreparedStatement ps = c.prepareStatement(queries.getQuery("retrieve_deal_dialog"));
+                    PreparedStatement ps = c.prepareStatement(config.getQuery("retrieve_deal_dialog"));
                     ps.setInt(1, dealId);
                     return ps;
                 },
@@ -228,7 +288,7 @@ public class DealDAO {
     private List<Party> listParties(int contractId) {
         return jdbc.query(
                 c -> {
-                    PreparedStatement ps = c.prepareStatement(queries.getQuery("list_deal_parties"));
+                    PreparedStatement ps = c.prepareStatement(config.getQuery("list_deal_parties_by_contract_id"));
                     ps.setInt(1, contractId);
                     return ps;
                 },
@@ -258,7 +318,7 @@ public class DealDAO {
         int rowsUpdated = jdbc.update(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
-                            queries.getQuery("accept_deal"),
+                            config.getQuery("accept_deal"),
                             Statement.RETURN_GENERATED_KEYS
                     );
                     ps.setInt(1, contractId);
@@ -273,19 +333,16 @@ public class DealDAO {
         }
     }
 
-    public void signProposal(int contractId, int accountId) {
-        int rowsUpdated = jdbc.update(
+    public int signProposal(int contractId, int accountId) {
+        return jdbc.update(
                 c -> {
-                    PreparedStatement ps = c.prepareStatement(queries.getQuery("sign_proposal"));
+                    PreparedStatement ps = c.prepareStatement(config.getQuery("sign_proposal"));
                     ps.setBytes(1, "Atticus-2".getBytes()); // TODO: calculate real signature
                     ps.setInt(2, contractId);
                     ps.setInt(3, accountId);
                     return ps;
                 }
         );
-        if(rowsUpdated == 0) {
-            throw new NotFoundException("contract doesn't exist, deleted or is already signed");
-        }
     }
 
 }

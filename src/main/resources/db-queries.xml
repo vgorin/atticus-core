@@ -195,7 +195,7 @@
         )
         VALUES(?, ?);
 ]]></entry>
-    <entry key="init_deal__create_dialog"><![CDATA[
+    <entry key="post_first_dialog_message"><![CDATA[
         INSERT INTO deal_dialog(
             deal_id,
             account_id,
@@ -204,7 +204,29 @@
         )
         VALUES(?, ?, 0, ?);
 ]]></entry>
-    <entry key="init_deal__self_sign_contract"><![CDATA[
+    <entry key="post_nth_dialog_message"><![CDATA[
+        -- TODO: move into single stored procedure:
+        -- select and insert must be part of single transaction
+
+        SET @deal_id = 1;
+        SET @account_id = 2;
+        SET @seq_num = 1 + (SELECT MAX(seq_num) FROM deal_dialog WHERE deal_id = @deal_id);
+        SET @contract_id = ?;
+
+        INSERT INTO deal_dialog(
+            deal_id,
+            account_id,
+            seq_num,
+            contract_id
+        )
+        VALUES(
+            @deal_id,
+            @account_id,
+            @seq_num,
+            @contract_id
+        );
+]]></entry>
+    <entry key="self_sign_contract"><![CDATA[
         INSERT INTO contract_party(
             contract_id,
             account_id,
@@ -214,7 +236,7 @@
         )
         VALUES(?, ?, ?, ?, NOW());
 ]]></entry>
-    <entry key="init_deal__invite_contract_party"><![CDATA[
+    <entry key="invite_contract_party"><![CDATA[
         INSERT INTO contract_party(
             contract_id,
             account_id,
@@ -298,10 +320,20 @@
         WHERE
             deal_id = ?;
 ]]></entry>
-    <entry key="list_deal_parties"><![CDATA[
+    <entry key="list_deal_parties_by_contract_id"><![CDATA[
         SELECT * FROM contract_party
         WHERE
             contract_id = ?;
+]]></entry>
+    <entry key="list_deal_parties"><![CDATA[
+        SELECT
+            p.*
+        FROM deal_dialog d
+        INNER JOIN contract_party p
+            ON d.contract_id = p.contract_id
+        WHERE
+            d.deal_id = ? AND
+            d.seq_num = 0;
 ]]></entry>
     <entry key="accept_deal"><![CDATA[
         INSERT INTO deal_dialog(
@@ -328,34 +360,4 @@
             signature IS NULL;
 ]]></entry>
 
-    <entry key="list_received_proposals2"><![CDATA[
-        SELECT
-            d.id          AS deal_id,
-            d.title       AS deal_title,
-            d.rec_created AS deal_created,
-            d.rec_updated AS deal_updated,
-            i.id          AS dialog_id,
-            i.message     AS dialog_message,
-            i.attachment  AS dialog_attachment,
-            p.id          AS party_id,
-            p.party_label AS party_label,
-            p.valid_until AS party_valid_until,
-            p.signature   AS party_signature,
-            p.signed_on   AS party_signed_on,
-            c.id          AS contract_id,
-            c.account_id  AS owner_id,
-            c.template_id AS template_id,
-            c.memo        AS contract_memo,
-            c.body        AS contract_body
-        FROM contract c
-        INNER JOIN contract_party p
-            ON c.id = p.contract_id
-        INNER JOIN deal_dialog i
-            ON c.id = i.contract_id
-        INNER JOIN deal d
-            ON i.deal_id = d.id
-        WHERE
-            p.account_id = ? AND
-            p.signature IS NULL;
-]]></entry>
 </properties>

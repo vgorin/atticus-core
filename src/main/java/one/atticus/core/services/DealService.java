@@ -1,12 +1,12 @@
 package one.atticus.core.services;
 
+import one.atticus.core.config.AppConfig;
 import one.atticus.core.dao.DealDAO;
 import one.atticus.core.resources.Deal;
 import org.codehaus.plexus.util.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -27,17 +27,18 @@ import static one.atticus.core.services.PackageUtils.authenticate;
 @Path("/deal")
 public class DealService {
     private final DealDAO dealDAO;
+    private final AppConfig config;
 
     @Autowired
-    public DealService(DealDAO dealDAO) {
+    public DealService(DealDAO dealDAO, AppConfig config) {
         this.dealDAO = dealDAO;
+        this.config = config;
     }
 
     @POST
     @Path("/")
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Transactional
-    public int initDeal(
+    public int proposeDeal(
             @Context SecurityContext context,
             @QueryParam("contract_id") int contractId,
             @QueryParam("to_account_id") int toAccountId,
@@ -46,7 +47,36 @@ public class DealService {
         int accountId = authenticate(context);
 
         try {
-            return dealDAO.submit(contractId, accountId, toAccountId, dealTitle);
+            return dealDAO.submitNewDeal(
+                    contractId,
+                    accountId,
+                    toAccountId,
+                    dealTitle,
+                    config.getInt("proposal.default_validity_period")
+            );
+        }
+        catch(DuplicateKeyException e) {
+            throw new ClientErrorException(ExceptionUtils.getRootCause(e).getMessage(), Response.Status.CONFLICT, e);
+        }
+    }
+
+    @POST
+    @Path("/{deal_id}")
+    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    public int counterPropose(
+            @Context SecurityContext context,
+            @PathParam("deal_id") int dealId,
+            @QueryParam("contract_id") int contractId
+    ) {
+        int accountId = authenticate(context);
+
+        try {
+            return dealDAO.postCounterProposal(
+                    dealId,
+                    accountId,
+                    contractId,
+                    config.getInt("proposal.default_validity_period")
+            );
         }
         catch(DuplicateKeyException e) {
             throw new ClientErrorException(ExceptionUtils.getRootCause(e).getMessage(), Response.Status.CONFLICT, e);
@@ -87,13 +117,16 @@ public class DealService {
 
     @PUT
     @Path("/accept/{contractId}")
-    @Transactional
     public void acceptDealAndSignProposal(
             @Context SecurityContext context,
             @PathParam("contractId") int contractId
     ) {
         int accountId = authenticate(context);
-        dealDAO.signProposal(contractId, accountId);
+        int rowsUpdated = dealDAO.signProposal(contractId, accountId);
+
+        if(rowsUpdated == 0) {
+            throw new NotFoundException("contract doesn't exist, deleted or is already signed");
+        }
     }
 
 
