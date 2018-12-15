@@ -307,11 +307,7 @@ The intent captured within this memorandum (”Amendment”) is to amend the exi
 
     </sql>
 </changeSet>
-<!--
-<changeSet id="contract_create_procedures-TCL" author="vgorin">
-    <sql>
-
-    </sql>
+<changeSet id="deal_create_procedures-TCL" author="vgorin">
+    <sqlFile endDelimiter="//" path="sql/deal_create_procedures-TCL.sql"/>
 </changeSet>
--->
 </databaseChangeLog>

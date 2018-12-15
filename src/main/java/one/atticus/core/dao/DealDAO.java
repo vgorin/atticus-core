@@ -8,6 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.SqlOutParameter;
+import org.springframework.jdbc.core.SqlParameter;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,7 @@ import javax.ws.rs.NotFoundException;
 import java.sql.*;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -40,8 +43,8 @@ public class DealDAO {
 
     @Transactional
     public int submitNewDeal(int contractId, int accountId, int toAccountId, String dealTitle, long validityPeriod) {
-        // 1. update contract – set proposed date
-        saveContract(contractId, accountId);
+        // 1. set contract proposal date
+        setProposalDate(contractId, accountId);
 
         // 2. insert a deal
         int dealId = createNewDeal(accountId, dealTitle);
@@ -63,20 +66,22 @@ public class DealDAO {
 
     @Transactional
     public int postCounterProposal(int dealId, int accountId, int contractId, long validityPeriod) {
-        // TODO: verify account is part of the deal and can post
-        // 1. post message into dialog
+        // 1. set contract proposal date
+        setProposalDate(contractId, accountId);
+
+        // 2. post message into dialog
         int dialogId = postNthDialogMessage(dealId, accountId, contractId);
 
         // contract is valid until 7 days from now
         long validUntil = System.currentTimeMillis() + validityPeriod;
 
-        // 2. self sign the contract
+        // 3. self sign the contract
         selfSignContract(contractId, accountId, validUntil);
 
-        // 3. determine parties of the deal
+        // 4. determine parties of the deal
         List<Integer> parties = listDealParties(dealId);
 
-        // 4. invite another parties to the contract
+        // 5. invite another parties to the contract
         for(int party: parties) {
             if(party != accountId) {
                 inviteContractParty(contractId, party, validUntil);
@@ -102,10 +107,10 @@ public class DealDAO {
         return fetchDeals(accountId, config.getQuery("list_deals"));
     }
 
-    private void saveContract(int contractId, int accountId) {
+    private void setProposalDate(int contractId, int accountId) {
         int rowsUpdated = jdbc.update(
                 c -> {
-                    PreparedStatement ps = c.prepareStatement(config.getQuery("init_deal__save_contract"));
+                    PreparedStatement ps = c.prepareStatement(config.getQuery("init_deal__propose_contract"));
                     ps.setInt(1, contractId);
                     ps.setInt(2, accountId);
                     return ps;
@@ -152,21 +157,26 @@ public class DealDAO {
     }
 
     private int postNthDialogMessage(int dealId, int accountId, int contractId) {
-        KeyHolder keyHolder = new GeneratedKeyHolder();
-        jdbc.update(
+        List<SqlParameter> parameters = new LinkedList<>();
+        parameters.add(new SqlParameter(Types.INTEGER));
+        parameters.add(new SqlParameter(Types.INTEGER));
+        parameters.add(new SqlParameter(Types.INTEGER));
+        parameters.add(new SqlOutParameter("dialog_id", Types.INTEGER));
+
+        Map<String, Object> result = jdbc.call(
                 c -> {
-                    PreparedStatement ps = c.prepareStatement(
-                            config.getQuery("post_nth_dialog_message"),
-                            Statement.RETURN_GENERATED_KEYS
+                    CallableStatement cs = c.prepareCall(
+                            config.getQuery("post_nth_dialog_message")
                     );
-                    ps.setInt(1, dealId);
-                    ps.setInt(2, accountId);
-                    ps.setInt(3, contractId);
-                    return ps;
+                    cs.setInt(1, dealId);
+                    cs.setInt(2, accountId);
+                    cs.setInt(3, contractId);
+                    cs.registerOutParameter(4, Types.INTEGER);
+                    return cs;
                 },
-                keyHolder
+                parameters
         );
-        return Objects.requireNonNull(keyHolder.getKey()).intValue();
+        return ((Long) result.get("dialog_id")).intValue();
     }
 
     private int selfSignContract(int contractId, int accountId, long validUntil) {

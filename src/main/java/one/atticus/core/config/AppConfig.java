@@ -21,6 +21,7 @@ public class AppConfig implements PropertyReader {
     @PostConstruct
     public void init() {
         try {
+            loadAppConfig();
             loadQueryStorage();
         }
         catch(IOException e) {
@@ -28,16 +29,16 @@ public class AppConfig implements PropertyReader {
         }
     }
 
-    private void loadQueryStorage() throws IOException {
-        Properties p = new Properties();
-        p.loadFromXML(queryStorage.getInputStream());
-        queries = new StringPropertyReader(p::getProperty);
-    }
-
     private void loadAppConfig() throws IOException {
         Properties p = new Properties();
         p.load(appConfig.getInputStream());
         config = new StringPropertyReader(p::getProperty);
+    }
+
+    private void loadQueryStorage() throws IOException {
+        Properties p = new Properties();
+        p.loadFromXML(queryStorage.getInputStream());
+        queries = new StringPropertyReader(p::getProperty);
     }
 
     public String getQuery(String key) {

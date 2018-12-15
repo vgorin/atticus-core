@@ -179,7 +179,7 @@
             deleted IS NULL AND
             proposed IS NOT NULL;
 ]]></entry>
-    <entry key="init_deal__save_contract"><![CDATA[
+    <entry key="init_deal__propose_contract"><![CDATA[
         UPDATE contract SET
             proposed = now()
         WHERE
@@ -205,26 +205,7 @@
         VALUES(?, ?, 0, ?);
 ]]></entry>
     <entry key="post_nth_dialog_message"><![CDATA[
-        -- TODO: move into single stored procedure:
-        -- select and insert must be part of single transaction
-
-        SET @deal_id = 1;
-        SET @account_id = 2;
-        SET @seq_num = 1 + (SELECT MAX(seq_num) FROM deal_dialog WHERE deal_id = @deal_id);
-        SET @contract_id = ?;
-
-        INSERT INTO deal_dialog(
-            deal_id,
-            account_id,
-            seq_num,
-            contract_id
-        )
-        VALUES(
-            @deal_id,
-            @account_id,
-            @seq_num,
-            @contract_id
-        );
+        CALL sp_post_nth_dialog_message(?, ?, ?, ?);
 ]]></entry>
     <entry key="self_sign_contract"><![CDATA[
         INSERT INTO contract_party(
