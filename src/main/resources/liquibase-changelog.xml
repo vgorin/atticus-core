@@ -17,13 +17,10 @@
 <changeSet id="contract_create_tables-DDL" author="vgorin">
     <sqlFile path="sql/contract_create_tables-DDL.sql"/>
 </changeSet>
+<changeSet id="contract_create_procedures-TCL" author="vgorin">
+    <sqlFile endDelimiter="//" path="sql/contract_create_procedures-TCL.sql"/>
+</changeSet>
 <changeSet id="contract_fill_data-DML" author="vgorin">
     <sqlFile path="sql/contract_fill_data-DML.sql"/>
 </changeSet>
-<changeSet id="deal_create_procedures-TCL" author="vgorin">
-    <sqlFile endDelimiter="//" path="sql/deal_create_procedures-TCL.sql"/>
-</changeSet>
-    <changeSet id="contract_create_procedures-TCL" author="vgorin">
-        <sqlFile endDelimiter="//" path="sql/contract_create_procedures-TCL.sql"/>
-    </changeSet>
 </databaseChangeLog>

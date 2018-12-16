@@ -7,6 +7,7 @@ import one.atticus.core.resources.Party;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.SqlOutParameter;
 import org.springframework.jdbc.core.SqlParameter;
@@ -161,7 +162,8 @@ public class DealDAO {
         parameters.add(new SqlParameter(Types.INTEGER));
         parameters.add(new SqlParameter(Types.INTEGER));
         parameters.add(new SqlParameter(Types.INTEGER));
-        parameters.add(new SqlOutParameter("dialog_id", Types.INTEGER));
+        parameters.add(new SqlOutParameter("row_count", Types.INTEGER));
+        parameters.add(new SqlOutParameter("insert_id", Types.INTEGER));
 
         Map<String, Object> result = jdbc.call(
                 c -> {
@@ -172,11 +174,18 @@ public class DealDAO {
                     cs.setInt(2, accountId);
                     cs.setInt(3, contractId);
                     cs.registerOutParameter(4, Types.INTEGER);
+                    cs.registerOutParameter(5, Types.INTEGER);
                     return cs;
                 },
                 parameters
         );
-        return ((Long) result.get("dialog_id")).intValue();
+
+        int rowCount = ((Long) result.get("row_count")).intValue();
+        if(rowCount != 1) {
+            throw new EmptyResultDataAccessException(1);
+        }
+
+        return ((Long) result.get("insert_id")).intValue();
     }
 
     private int selfSignContract(int contractId, int accountId, long validUntil) {

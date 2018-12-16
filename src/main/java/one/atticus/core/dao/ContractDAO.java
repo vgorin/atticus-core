@@ -5,6 +5,7 @@ import one.atticus.core.resources.Contract;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.SqlOutParameter;
 import org.springframework.jdbc.core.SqlParameter;
@@ -56,6 +57,35 @@ public class ContractDAO {
         );
 
         return Objects.requireNonNull(keyHolder.getKey()).intValue();
+    }
+
+    public int clone(int contractId, int accountId) {
+        List<SqlParameter> parameters = new LinkedList<>();
+        parameters.add(new SqlParameter(Types.INTEGER));
+        parameters.add(new SqlParameter(Types.INTEGER));
+        parameters.add(new SqlOutParameter("row_count", Types.INTEGER));
+        parameters.add(new SqlOutParameter("insert_id", Types.INTEGER));
+
+        Map<String, Object> result = jdbc.call(
+                c -> {
+                    CallableStatement cs = c.prepareCall(
+                            config.getQuery("clone_contract")
+                    );
+                    cs.setInt(1, contractId);
+                    cs.setInt(2, accountId);
+                    cs.registerOutParameter(3, Types.INTEGER);
+                    cs.registerOutParameter(4, Types.INTEGER);
+                    return cs;
+                },
+                parameters
+        );
+
+        int rowCount = ((Long) result.get("row_count")).intValue();
+        if(rowCount != 1) {
+            throw new EmptyResultDataAccessException(1);
+        }
+
+        return ((Long) result.get("insert_id")).intValue();
     }
 
     public Contract retrieve(int contractId) {
@@ -135,27 +165,6 @@ public class ContractDAO {
                 },
                 ContractDAO::getContracts
         );
-    }
-
-    public int clone(int contractId, int accountId) {
-        List<SqlParameter> parameters = new LinkedList<>();
-        parameters.add(new SqlParameter(Types.INTEGER));
-        parameters.add(new SqlParameter(Types.INTEGER));
-        parameters.add(new SqlOutParameter("to_contract_id", Types.INTEGER));
-
-        Map<String, Object> result = jdbc.call(
-                c -> {
-                    CallableStatement cs = c.prepareCall(
-                            config.getQuery("clone_contract")
-                    );
-                    cs.setInt(1, contractId);
-                    cs.setInt(2, accountId);
-                    cs.registerOutParameter(3, Types.INTEGER);
-                    return cs;
-                },
-                parameters
-        );
-        return ((Long) result.get("to_contract_id")).intValue();
     }
 
     private static List<Contract> getContracts(ResultSet rs) throws SQLException {

@@ -57,6 +57,17 @@ public class ContractService {
         }
     }
 
+    @POST
+    @Path("/{contractId}")
+    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    public int clone(@Context SecurityContext context, @PathParam("contractId") int contractId) {
+        int accountId = authenticate(context);
+
+        // TODO: verify this account has access to the contract (is part of the same deal)
+
+        return contractDAO.clone(contractId, accountId);
+    }
+
     @GET
     @Path("/{contractId}")
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
@@ -116,15 +127,6 @@ public class ContractService {
             return contractDAO.listProposed(accountId);
         }
         return contractDAO.list(accountId);
-    }
-
-    @POST
-    @Path("/{contractId}")
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public int clone(@Context SecurityContext context, @PathParam("contractId") int contractId) {
-        int accountId = authenticate(context);
-
-        return contractDAO.clone(contractId, accountId);
     }
 
 }

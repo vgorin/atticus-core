@@ -193,7 +193,7 @@
             proposed IS NOT NULL;
 ]]></entry>
     <entry key="clone_contract"><![CDATA[
-        CALL sp_clone_contract(?, ?, ?);
+        CALL sp_clone_contract(?, ?, ?, ?);
 ]]></entry>
     <entry key="init_deal__propose_contract"><![CDATA[
         UPDATE contract SET
@@ -221,7 +221,7 @@
         VALUES(?, ?, 0, ?);
 ]]></entry>
     <entry key="post_nth_dialog_message"><![CDATA[
-        CALL sp_post_nth_dialog_message(?, ?, ?, ?);
+        CALL sp_post_nth_dialog_message(?, ?, ?, ?, ?);
 ]]></entry>
     <entry key="self_sign_contract"><![CDATA[
         INSERT INTO contract_party(

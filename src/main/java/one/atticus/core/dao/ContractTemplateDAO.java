@@ -5,7 +5,10 @@ import one.atticus.core.resources.ContractTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.SqlOutParameter;
+import org.springframework.jdbc.core.SqlParameter;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Service;
@@ -13,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.sql.*;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -26,12 +30,12 @@ public class ContractTemplateDAO {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final JdbcTemplate jdbc;
-    private final AppConfig queries;
+    private final AppConfig config;
 
     @Autowired
-    public ContractTemplateDAO(JdbcTemplate jdbc, AppConfig queries) {
+    public ContractTemplateDAO(JdbcTemplate jdbc, AppConfig config) {
         this.jdbc = jdbc;
-        this.queries = queries;
+        this.config = config;
     }
 
     public int create(ContractTemplate template) {
@@ -39,7 +43,7 @@ public class ContractTemplateDAO {
         jdbc.update(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
-                            queries.getQuery("create_contract_template"),
+                            config.getQuery("create_contract_template"),
                             Statement.RETURN_GENERATED_KEYS
                     );
                     ps.setInt(1, template.accountId);
@@ -54,10 +58,39 @@ public class ContractTemplateDAO {
         return Objects.requireNonNull(keyHolder.getKey()).intValue();
     }
 
+    public int clone(int templateId, int accountId) {
+        List<SqlParameter> parameters = new LinkedList<>();
+        parameters.add(new SqlParameter(Types.INTEGER));
+        parameters.add(new SqlParameter(Types.INTEGER));
+        parameters.add(new SqlOutParameter("row_count", Types.INTEGER));
+        parameters.add(new SqlOutParameter("insert_id", Types.INTEGER));
+
+        Map<String, Object> result = jdbc.call(
+                c -> {
+                    CallableStatement cs = c.prepareCall(
+                            config.getQuery("clone_template")
+                    );
+                    cs.setInt(1, templateId);
+                    cs.setInt(2, accountId);
+                    cs.registerOutParameter(3, Types.INTEGER);
+                    cs.registerOutParameter(4, Types.INTEGER);
+                    return cs;
+                },
+                parameters
+        );
+
+        int rowCount = ((Long) result.get("row_count")).intValue();
+        if(rowCount != 1) {
+            throw new EmptyResultDataAccessException(1);
+        }
+
+        return ((Long) result.get("insert_id")).intValue();
+    }
+
     public ContractTemplate retrieve(int templateId) {
         return jdbc.query(
                 c -> {
-                    PreparedStatement ps = c.prepareStatement(queries.getQuery("get_contract_template"));
+                    PreparedStatement ps = c.prepareStatement(config.getQuery("get_contract_template"));
                     ps.setInt(1, templateId);
                     return ps;
                 },
@@ -68,7 +101,7 @@ public class ContractTemplateDAO {
     public ContractTemplate retrieve(int templateId, int accountId) {
         return jdbc.query(
                 c -> {
-                    PreparedStatement ps = c.prepareStatement(queries.getQuery("get_contract_template_of"));
+                    PreparedStatement ps = c.prepareStatement(config.getQuery("get_contract_template_of"));
                     ps.setInt(1, templateId);
                     ps.setInt(2, accountId);
                     return ps;
@@ -80,7 +113,7 @@ public class ContractTemplateDAO {
     public int update(ContractTemplate template) {
         return jdbc.update(
                 c -> {
-                    PreparedStatement ps = c.prepareStatement(queries.getQuery("update_contract_template"));
+                    PreparedStatement ps = c.prepareStatement(config.getQuery("update_contract_template"));
                     ps.setString(1, template.title);
                     ps.setString(2, template.version);
                     ps.setString(3, template.body);
@@ -94,7 +127,7 @@ public class ContractTemplateDAO {
 
     public int delete(int templateId, int accountId) {
         return jdbc.update(c -> {
-            PreparedStatement ps = c.prepareStatement(queries.getQuery("delete_contract_template"));
+            PreparedStatement ps = c.prepareStatement(config.getQuery("delete_contract_template"));
             ps.setInt(1, templateId);
             ps.setInt(2, accountId);
             return ps;
@@ -104,7 +137,7 @@ public class ContractTemplateDAO {
     public List<ContractTemplate> list(int accountId) {
         return jdbc.query(
                 c -> {
-                    PreparedStatement ps = c.prepareStatement(queries.getQuery("list_contract_templates"));
+                    PreparedStatement ps = c.prepareStatement(config.getQuery("list_contract_templates"));
                     ps.setInt(1, accountId);
                     return ps;
                 },
@@ -114,7 +147,7 @@ public class ContractTemplateDAO {
 
     public int release(int templateId, int accountId) {
         return jdbc.update(c -> {
-            PreparedStatement ps = c.prepareStatement(queries.getQuery("release_contract_template"));
+            PreparedStatement ps = c.prepareStatement(config.getQuery("release_contract_template"));
             ps.setInt(1, templateId);
             ps.setInt(2, accountId);
             return ps;
@@ -123,7 +156,7 @@ public class ContractTemplateDAO {
 
     public int publish(int templateId, int accountId) {
         return jdbc.update(c -> {
-            PreparedStatement ps = c.prepareStatement(queries.getQuery("publish_contract_template"));
+            PreparedStatement ps = c.prepareStatement(config.getQuery("publish_contract_template"));
             ps.setInt(1, templateId);
             ps.setInt(2, accountId);
             return ps;
@@ -134,7 +167,7 @@ public class ContractTemplateDAO {
         String query = String.format("%%%s%%", prefix);
         return jdbc.query(
                 c -> {
-                    PreparedStatement ps = c.prepareStatement(queries.getQuery("search_contract_templates"));
+                    PreparedStatement ps = c.prepareStatement(config.getQuery("search_contract_templates"));
                     ps.setInt(1, accountId);
                     ps.setString(2, query);
                     return ps;

@@ -60,6 +60,15 @@ public class ContractTemplateService {
         }
     }
 
+    @POST
+    @Path("/{contractId}")
+    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    public int clone(@Context SecurityContext context, @PathParam("contractId") int templateId) {
+        int accountId = authenticate(context);
+
+        return templateDAO.clone(templateId, accountId);
+    }
+
     @GET
     @Path("/{templateId}")
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
