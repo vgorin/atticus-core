@@ -118,4 +118,13 @@ public class ContractService {
         return contractDAO.list(accountId);
     }
 
+    @POST
+    @Path("/{contractId}")
+    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    public int clone(@Context SecurityContext context, @PathParam("contractId") int contractId) {
+        int accountId = authenticate(context);
+
+        return contractDAO.clone(contractId, accountId);
+    }
+
 }

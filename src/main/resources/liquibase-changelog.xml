@@ -23,4 +23,7 @@
 <changeSet id="deal_create_procedures-TCL" author="vgorin">
     <sqlFile endDelimiter="//" path="sql/deal_create_procedures-TCL.sql"/>
 </changeSet>
+    <changeSet id="contract_create_procedures-TCL" author="vgorin">
+        <sqlFile endDelimiter="//" path="sql/contract_create_procedures-TCL.sql"/>
+    </changeSet>
 </databaseChangeLog>

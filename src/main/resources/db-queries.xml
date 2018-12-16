@@ -192,6 +192,9 @@
             deleted IS NULL AND
             proposed IS NOT NULL;
 ]]></entry>
+    <entry key="clone_contract"><![CDATA[
+        CALL sp_clone_contract(?, ?, ?);
+]]></entry>
     <entry key="init_deal__propose_contract"><![CDATA[
         UPDATE contract SET
             proposed = now()

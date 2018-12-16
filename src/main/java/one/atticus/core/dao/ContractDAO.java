@@ -6,6 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.SqlOutParameter;
+import org.springframework.jdbc.core.SqlParameter;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Service;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.sql.*;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 
@@ -27,12 +30,12 @@ public class ContractDAO {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final JdbcTemplate jdbc;
-    private final AppConfig queries;
+    private final AppConfig config;
 
     @Autowired
-    public ContractDAO(JdbcTemplate jdbc, AppConfig queries) {
+    public ContractDAO(JdbcTemplate jdbc, AppConfig config) {
         this.jdbc = jdbc;
-        this.queries = queries;
+        this.config = config;
     }
 
     public int create(Contract contract) {
@@ -40,7 +43,7 @@ public class ContractDAO {
         jdbc.update(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(
-                            queries.getQuery("create_contract"),
+                            config.getQuery("create_contract"),
                             Statement.RETURN_GENERATED_KEYS
                     );
                     ps.setInt(1, contract.accountId);
@@ -58,7 +61,7 @@ public class ContractDAO {
     public Contract retrieve(int contractId) {
         return jdbc.query(
                 c -> {
-                    PreparedStatement ps = c.prepareStatement(queries.getQuery("get_contract"));
+                    PreparedStatement ps = c.prepareStatement(config.getQuery("get_contract"));
                     ps.setInt(1, contractId);
                     return ps;
                 },
@@ -69,7 +72,7 @@ public class ContractDAO {
     public Contract retrieve(int contractId, int accountId) {
         return jdbc.query(
                 c -> {
-                    PreparedStatement ps = c.prepareStatement(queries.getQuery("get_contract_of"));
+                    PreparedStatement ps = c.prepareStatement(config.getQuery("get_contract_of"));
                     ps.setInt(1, contractId);
                     ps.setInt(2, accountId);
                     return ps;
@@ -81,7 +84,7 @@ public class ContractDAO {
     public int update(Contract contract) {
         return jdbc.update(
                 c -> {
-                    PreparedStatement ps = c.prepareStatement(queries.getQuery("update_contract"));
+                    PreparedStatement ps = c.prepareStatement(config.getQuery("update_contract"));
                     ps.setString(1, contract.memo);
                     ps.setString(2, contract.body);
                     ps.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
@@ -94,7 +97,7 @@ public class ContractDAO {
 
     public int delete(int contractId, int accountId) {
         return jdbc.update(c -> {
-            PreparedStatement ps = c.prepareStatement(queries.getQuery("delete_contract"));
+            PreparedStatement ps = c.prepareStatement(config.getQuery("delete_contract"));
             ps.setInt(1, contractId);
             ps.setInt(2, accountId);
             return ps;
@@ -104,7 +107,7 @@ public class ContractDAO {
     public List<Contract> list(int accountId) {
         return jdbc.query(
                 c -> {
-                    PreparedStatement ps = c.prepareStatement(queries.getQuery("list_contracts"));
+                    PreparedStatement ps = c.prepareStatement(config.getQuery("list_contracts"));
                     ps.setInt(1, accountId);
                     return ps;
                 },
@@ -115,7 +118,7 @@ public class ContractDAO {
     public List<Contract> listDrafts(int accountId) {
         return jdbc.query(
                 c -> {
-                    PreparedStatement ps = c.prepareStatement(queries.getQuery("list_draft_contracts"));
+                    PreparedStatement ps = c.prepareStatement(config.getQuery("list_draft_contracts"));
                     ps.setInt(1, accountId);
                     return ps;
                 },
@@ -126,12 +129,33 @@ public class ContractDAO {
     public List<Contract> listProposed(int accountId) {
         return jdbc.query(
                 c -> {
-                    PreparedStatement ps = c.prepareStatement(queries.getQuery("list_proposed_contracts"));
+                    PreparedStatement ps = c.prepareStatement(config.getQuery("list_proposed_contracts"));
                     ps.setInt(1, accountId);
                     return ps;
                 },
                 ContractDAO::getContracts
         );
+    }
+
+    public int clone(int contractId, int accountId) {
+        List<SqlParameter> parameters = new LinkedList<>();
+        parameters.add(new SqlParameter(Types.INTEGER));
+        parameters.add(new SqlParameter(Types.INTEGER));
+        parameters.add(new SqlOutParameter("to_contract_id", Types.INTEGER));
+
+        Map<String, Object> result = jdbc.call(
+                c -> {
+                    CallableStatement cs = c.prepareCall(
+                            config.getQuery("clone_contract")
+                    );
+                    cs.setInt(1, contractId);
+                    cs.setInt(2, accountId);
+                    cs.registerOutParameter(3, Types.INTEGER);
+                    return cs;
+                },
+                parameters
+        );
+        return ((Long) result.get("to_contract_id")).intValue();
     }
 
     private static List<Contract> getContracts(ResultSet rs) throws SQLException {
