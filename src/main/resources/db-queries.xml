@@ -63,11 +63,18 @@
         )
         VALUES(?, ? ,?, ?, ?);
 ]]></entry>
+    <entry key="get_contract_template_of"><![CDATA[
+        SELECT * FROM contract_template
+        WHERE
+            id = ? AND
+            (account_id = ? OR
+                published NOT NULL) AND
+            deleted IS NULL;
+]]></entry>
     <entry key="get_contract_template"><![CDATA[
         SELECT * FROM contract_template
         WHERE
             id = ? AND
-            account_id = ? AND
             deleted IS NULL;
 ]]></entry>
     <entry key="update_contract_template"><![CDATA[
@@ -133,11 +140,17 @@
         )
         VALUES(?, ?, ?, ?);
 ]]></entry>
-    <entry key="get_contract"><![CDATA[
+    <entry key="get_contract_of"><![CDATA[
         SELECT * FROM contract
         WHERE
             id = ? AND
             account_id = ? AND
+            deleted IS NULL;
+]]></entry>
+    <entry key="get_contract"><![CDATA[
+        SELECT * FROM contract
+        WHERE
+            id = ? AND
             deleted IS NULL;
 ]]></entry>
     <entry key="update_contract"><![CDATA[

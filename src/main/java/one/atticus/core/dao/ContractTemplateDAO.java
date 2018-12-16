@@ -54,10 +54,21 @@ public class ContractTemplateDAO {
         return Objects.requireNonNull(keyHolder.getKey()).intValue();
     }
 
-    public ContractTemplate retrieve(int templateId, int accountId) {
+    public ContractTemplate retrieve(int templateId) {
         return jdbc.query(
                 c -> {
                     PreparedStatement ps = c.prepareStatement(queries.getQuery("get_contract_template"));
+                    ps.setInt(1, templateId);
+                    return ps;
+                },
+                ContractTemplateDAO::getContractTemplate
+        );
+    }
+
+    public ContractTemplate retrieve(int templateId, int accountId) {
+        return jdbc.query(
+                c -> {
+                    PreparedStatement ps = c.prepareStatement(queries.getQuery("get_contract_template_of"));
                     ps.setInt(1, templateId);
                     ps.setInt(2, accountId);
                     return ps;

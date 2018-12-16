@@ -61,9 +61,11 @@ public class ContractService {
     @Path("/{contractId}")
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public Contract retrieve(@Context SecurityContext context, @PathParam("contractId") int contractId) {
-        int accountId = authenticate(context);
+        authenticate(context);
 
-        Contract contract = contractDAO.retrieve(contractId, accountId);
+        // TODO: verify this account has access to the contract (is part of the same deal)
+
+        Contract contract = contractDAO.retrieve(contractId);
         if(contract == null) {
             throw new NotFoundException("contract doesn't exist / deleted");
         }
