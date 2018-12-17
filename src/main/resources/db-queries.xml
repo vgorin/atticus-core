@@ -162,7 +162,7 @@
             id = ? AND
             account_id = ? AND
             proposed IS NULL AND
-            deleted IS NOT NULL;
+            deleted IS NULL;
 ]]></entry>
     <entry key="delete_contract"><![CDATA[
         UPDATE contract SET
