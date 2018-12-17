@@ -68,7 +68,7 @@
         WHERE
             id = ? AND
             (account_id = ? OR
-                published NOT NULL) AND
+                published IS NOT NULL) AND
             deleted IS NULL;
 ]]></entry>
     <entry key="get_contract_template"><![CDATA[
