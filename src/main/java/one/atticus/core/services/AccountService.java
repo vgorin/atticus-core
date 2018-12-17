@@ -57,6 +57,10 @@ public class AccountService {
     public int create(@Context SecurityContext context, UserAccount account) {
         log.trace("creating account: {}", account);
 
+        if(account == null) {
+            throw new BadRequestException("no account in the request body");
+        }
+
         try {
             int accountId = accountDAO.create(account);
             account.accountId = accountId;
@@ -106,6 +110,10 @@ public class AccountService {
 
         if(accountId != authAccountId) {
             throw new ForbiddenException();
+        }
+
+        if(account == null) {
+            throw new BadRequestException("no account in the request body");
         }
 
         try {

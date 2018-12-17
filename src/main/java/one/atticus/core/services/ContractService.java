@@ -43,6 +43,10 @@ public class ContractService {
     public int create(@Context SecurityContext context, Contract contract) {
         int accountId = authenticate(context);
 
+        if(contract == null) {
+            throw new BadRequestException("no contract in the request body");
+        }
+
         try {
             contract.accountId = accountId;
             int contractId = contractDAO.create(contract);
@@ -89,6 +93,10 @@ public class ContractService {
     public void update(@Context SecurityContext context, @PathParam("contractId") int contractId, Contract contract) {
         int accountId = authenticate(context);
 
+        if(contract == null) {
+            throw new BadRequestException("no contract in the request body");
+        }
+
         try {
             contract.contractId = contractId;
             contract.accountId = accountId;
@@ -106,7 +114,7 @@ public class ContractService {
 
     @DELETE
     @Path("/{contractId}")
-    public void delete(@Context SecurityContext context, @PathParam("contractId") int contractId, Contract contract) {
+    public void delete(@Context SecurityContext context, @PathParam("contractId") int contractId) {
         int accountId = authenticate(context);
         int rowsUpdated = contractDAO.delete(contractId, accountId);
         if(rowsUpdated == 0) {
