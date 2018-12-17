@@ -186,18 +186,19 @@ public class ContractDAO {
         Timestamp modified = rs.getTimestamp("modified");
         Timestamp updated = rs.getTimestamp("rec_updated");
 
-        Contract template = new Contract();
-        template.contractId = rs.getInt("id");
-        template.accountId = rs.getInt("account_id");
-        template.memo = rs.getString("memo");
-        template.body = rs.getString("body");
-        template.proposed = proposed == null? null: proposed.getTime();
-        template.deleted = deleted == null? null: deleted.getTime();
-        template.modified = modified == null? null: modified.getTime();
-        template.updated = updated == null? null: updated.getTime();
-        template.created = rs.getTimestamp("rec_created").getTime();
+        Contract contract = new Contract();
+        contract.contractId = rs.getInt("id");
+        contract.accountId = rs.getInt("account_id");
+        contract.templateId = rs.getInt("template_id");
+        contract.memo = rs.getString("memo");
+        contract.body = rs.getString("body");
+        contract.proposed = proposed == null? null: proposed.getTime();
+        contract.deleted = deleted == null? null: deleted.getTime();
+        contract.modified = modified == null? null: modified.getTime();
+        contract.updated = updated == null? null: updated.getTime();
+        contract.created = rs.getTimestamp("rec_created").getTime();
 
-        return template;
+        return contract;
     }
 
 
