@@ -3,7 +3,10 @@ package one.atticus.core.services;
 import one.atticus.core.config.AppConfig;
 import one.atticus.core.dao.DealDAO;
 import one.atticus.core.resources.Deal;
+import one.atticus.core.resources.DealDialog;
 import org.codehaus.plexus.util.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -26,6 +29,8 @@ import static one.atticus.core.services.PackageUtils.authenticate;
 @Service
 @Path("/deal")
 public class DealService {
+    private final Logger log = LoggerFactory.getLogger(getClass());
+
     private final DealDAO dealDAO;
     private final AppConfig config;
 
@@ -66,21 +71,47 @@ public class DealService {
     public int counterPropose(
             @Context SecurityContext context,
             @PathParam("deal_id") int dealId,
-            @QueryParam("contract_id") int contractId
+            DealDialog dialog
     ) {
         int accountId = authenticate(context);
 
+        if(dialog == null) {
+            throw new BadRequestException("no deal dialog in the request body");
+        }
+
         try {
-            return dealDAO.postCounterProposal(
+            int dialogId = dealDAO.postCounterProposal(
                     dealId,
                     accountId,
-                    contractId,
+                    dialog.message,
+                    dialog.attachment,
+                    dialog.contractId,
                     config.getInt("proposal.default_validity_period")
             );
+            dialog.dialogId = dialogId;
+
+            log.debug("deal dialog entry created: {}", dialog);
+
+            return dialogId;
         }
         catch(DuplicateKeyException e) {
             throw new ClientErrorException(ExceptionUtils.getRootCause(e).getMessage(), Response.Status.CONFLICT, e);
         }
+    }
+
+    @GET
+    @Path("/{deal_id}")
+    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    public Deal getDeal(@Context SecurityContext context, @PathParam("deal_id") int dealId) {
+        authenticate(context);
+
+        // TODO: verify this account has access to the deal
+
+        Deal deal = dealDAO.retrieve(dealId);
+        if(deal == null) {
+            throw new NotFoundException("deal doesn't exist / deleted");
+        }
+        return deal;
     }
 
     @GET

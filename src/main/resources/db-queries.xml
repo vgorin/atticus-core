@@ -241,22 +241,11 @@
         )
         VALUES(?, ?, ?);
 ]]></entry>
-    <entry key="list_received_proposals"><![CDATA[
-        SELECT
-            d.*,
-            c.id AS contract_id
-        FROM deal d
-        INNER JOIN deal_dialog i
-            ON d.id = i.deal_id
-        INNER JOIN contract c
-            ON i.contract_id = c.id
-        INNER JOIN contract_party p
-            ON c.id = p.contract_id
+    <entry key="get_deal"><![CDATA[
+        SELECT * FROM deal
         WHERE
-            p.account_id = ? AND
-            p.signature IS NULL AND
-            p.valid_until > NOW() AND
-            d.deleted IS NULL;
+            deal_id = ? AND
+            deleted IS NULL;
 ]]></entry>
     <entry key="list_submitted_proposals"><![CDATA[
         SELECT
@@ -272,6 +261,23 @@
            AND c.account_id = p.account_id
         WHERE
             d.account_id = ? AND
+            p.valid_until > NOW() AND
+            d.deleted IS NULL;
+]]></entry>
+    <entry key="list_received_proposals"><![CDATA[
+        SELECT
+            d.*,
+            c.id AS contract_id
+        FROM deal d
+        INNER JOIN deal_dialog i
+            ON d.id = i.deal_id
+        INNER JOIN contract c
+            ON i.contract_id = c.id
+        INNER JOIN contract_party p
+            ON c.id = p.contract_id
+        WHERE
+            p.account_id = ? AND
+            p.signature IS NULL AND
             p.valid_until > NOW() AND
             d.deleted IS NULL;
 ]]></entry>

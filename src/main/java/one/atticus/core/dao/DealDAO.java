@@ -66,12 +66,12 @@ public class DealDAO {
     }
 
     @Transactional
-    public int postCounterProposal(int dealId, int accountId, int contractId, long validityPeriod) {
+    public int postCounterProposal(int dealId, int accountId, String message, byte[] attachment, int contractId, long validityPeriod) {
         // 1. set contract proposal date
         setProposalDate(contractId, accountId);
 
         // 2. post message into dialog
-        int dialogId = postNthDialogMessage(dealId, accountId, contractId);
+        int dialogId = postNthDialogMessage(dealId, accountId, message, attachment, contractId);
 
         // contract is valid until 7 days from now
         long validUntil = System.currentTimeMillis() + validityPeriod;
@@ -90,6 +90,21 @@ public class DealDAO {
         }
 
         return dialogId;
+    }
+
+    public Deal retrieve(int dealId) {
+        Deal deal = jdbc.query(
+                c -> {
+                    PreparedStatement ps = c.prepareStatement(config.getQuery("get_deal"));
+                    ps.setInt(1, dealId);
+                    return ps;
+                },
+                DealDAO::getDeal
+        );
+        if(deal != null) {
+            deal.dialog = retrieveDialog(dealId);
+        }
+        return deal;
     }
 
     public List<Deal> listSubmittedProposals(int accountId) {
@@ -157,10 +172,12 @@ public class DealDAO {
         return Objects.requireNonNull(keyHolder.getKey()).intValue();
     }
 
-    private int postNthDialogMessage(int dealId, int accountId, int contractId) {
+    private int postNthDialogMessage(int dealId, int accountId, String message, byte[] attachment, int contractId) {
         List<SqlParameter> parameters = new LinkedList<>();
         parameters.add(new SqlParameter(Types.INTEGER));
         parameters.add(new SqlParameter(Types.INTEGER));
+        parameters.add(new SqlParameter(Types.VARCHAR));
+        parameters.add(new SqlParameter(Types.BLOB));
         parameters.add(new SqlParameter(Types.INTEGER));
         parameters.add(new SqlOutParameter("row_count", Types.INTEGER));
         parameters.add(new SqlOutParameter("insert_id", Types.INTEGER));
@@ -172,9 +189,11 @@ public class DealDAO {
                     );
                     cs.setInt(1, dealId);
                     cs.setInt(2, accountId);
-                    cs.setInt(3, contractId);
-                    cs.registerOutParameter(4, Types.INTEGER);
-                    cs.registerOutParameter(5, Types.INTEGER);
+                    cs.setString(3, message);
+                    cs.setBytes(4, attachment);
+                    cs.setInt(5, contractId);
+                    cs.registerOutParameter(6, Types.INTEGER);
+                    cs.registerOutParameter(7, Types.INTEGER);
                     return cs;
                 },
                 parameters
