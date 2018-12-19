@@ -86,25 +86,18 @@ public class AccountService {
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public UserAccount retrieve(
             @Context SecurityContext context,
-            @PathParam("accountId") int accountId,
-            @QueryParam("includeTemplates") boolean includeTemplates,
-            @QueryParam("includeContracts") boolean includeContracts,
-            @QueryParam("includeDeals") boolean includeDeals
+            @PathParam("accountId") int accountId
     ) {
         authenticate(context);
         UserAccount account = accountDAO.retrieve(accountId);
         if(account == null) {
             throw new NotFoundException();
         }
-        if(includeTemplates) {
-            account.templates = templateDAO.list(accountId);
-        }
-        if(includeContracts) {
-            account.contracts = contractDAO.list(accountId);
-        }
-        if(includeDeals) {
-            account.deals = dealDAO.listDeals(accountId);
-        }
+        account.templates = templateDAO.list(accountId);
+        account.drafts = contractDAO.listDrafts(accountId);
+        account.receivedProposals = dealDAO.listReceivedProposals(accountId);
+        account.sentProposals = dealDAO.listSubmittedProposals(accountId);
+        account.activeDeals = dealDAO.listActiveDeals(accountId);
         return account;
     }
 

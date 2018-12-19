@@ -52,8 +52,15 @@ public class UserAccount extends AbstractJson {
     public List<ContractTemplate> templates;
 
     @XmlElement
-    public List<Contract> contracts;
+    public List<Contract> drafts;
 
     @XmlElement
-    public List<Deal> deals;
+    public List<Deal> receivedProposals;
+
+    @XmlElement
+    public List<Deal> sentProposals;
+
+    @XmlElement
+    public List<Deal> activeDeals;
+
 }
