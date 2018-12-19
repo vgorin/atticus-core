@@ -221,7 +221,7 @@
         VALUES(?, ?, 0, ?);
 ]]></entry>
     <entry key="post_nth_dialog_message"><![CDATA[
-        CALL sp_post_nth_dialog_message(?, ?, ?, ?, ?);
+        CALL sp_post_nth_dialog_message(?, ?, ?, ?, ?, ?, ?);
 ]]></entry>
     <entry key="self_sign_contract"><![CDATA[
         INSERT INTO contract_party(
