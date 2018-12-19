@@ -60,6 +60,12 @@ public class AccountService {
         if(account == null) {
             throw new BadRequestException("no account in the request body");
         }
+        if(account.email == null) {
+            throw new BadRequestException("account: email is required");
+        }
+        if(account.password == null) {
+            throw new BadRequestException("account: password is required");
+        }
 
         try {
             int accountId = accountDAO.create(account);
